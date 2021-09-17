@@ -13,73 +13,17 @@ benchmark "cve" {
 benchmark "cve_2021" {
   title = "2021"
   children = [
-    # control.cve_2021_1234,
+    control.cve_2021_3129,
     control.cve_2021_21234,
     control.cve_2021_21315,
+    control.cve_2021_36380,
     control.cve_2021_37216,
     control.cve_2021_37538,
     control.cve_2021_37573,
     control.cve_2021_37704,
     control.cve_2021_38702,
     control.cve_2021_38751,
-    control.cve_2021_3129
   ]
-}
-
-query "cve_2021_1234" {
-  title       = "CVE-2021-1234 Test check"
-  description = "This is a test"
-
-  param "base_url" {
-    default = var.base_url
-  }
-
-  sql = <<EOQ
-    select
-      method || ' ' || url as resource,
-      case
-        when error is not null then 'error'
-        when status_code = 200 then 'alarm'
-        else 'ok'
-      end as status,
-      coalesce(error, $1 || ' returned ' || status_code || '.') as reason
-    from
-      web_request
-    where
-      method = 'GET'
-      and url = $1
-  EOQ
-}
-
-control "cve_2021_1234" {
-  title       = "CVE-2021-1234 Test check"
-  description = "This is a test"
-
-  tags = {
-    source    = "https://github.com/projectdiscovery/nuclei-templates/blob/master/cves/2021/CVE-2021-21315.yaml"
-    author    = "pikpikcu"
-    reference = "https://blogg.pwc.no/styringogkontroll/unauthenticated-directory-traversal-vulnerability-in-a-java-spring-boot-actuator-library-cve-2021-21234"
-  }
-
-  param "base_url" {
-    default = var.base_url
-  }
-
-  sql = <<EOQ
-    select
-      method || ' ' || url as resource,
-      case
-        when error is not null then 'error'
-        when status_code = 200 then 'alarm'
-        else 'ok'
-      end as status,
-      coalesce(error, $1 || ' returned ' || status_code || '.') as reason
-    from
-      web_request
-    where
-      method = 'GET'
-      and url = $1
-  EOQ
 }
 
 control "cve_2021_21234" {

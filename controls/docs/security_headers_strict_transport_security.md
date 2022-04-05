@@ -1,0 +1,3 @@
+## Description
+
+HTTP Strict Transport Security is a header that configures the web browser to always use a valid secure connection with the web application. If the server TLS certificate suddenly becomes expired or untrusted, the browser will no longer connect to the web application. Also, if the user attempts to access the web application using an `http://` url, the browser will automatically change it to `https://`. These countermeasures help prevent Man-in-the-middle attacks as well as other attacks such as Session Hijacking.

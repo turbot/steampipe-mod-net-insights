@@ -1,0 +1,2 @@
+site_url = [ "https://steampipe.io/", "https://github.com" ]
+domain_name = [ "datadog.com" ]

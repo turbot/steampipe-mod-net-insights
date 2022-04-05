@@ -6,9 +6,7 @@ dashboard "website_header_check" {
     title = "Select a address:"
     width = 4
     option "https://turbot.com" { label = "turbot.com" }
-    option "https://datadog.com" { label = "datadog.com" }
     option "https://steampipe.io" { label = "steampipe.io" }
-    option "https://google.com" { label = "google.com" }
   }
 
   container {

@@ -1,7 +1,7 @@
 variable "domain_name" {
   type        = list(string)
   description = "The name of the domain."
-  default     = [ "turbot.com", "helloworld.com" ]
+  default     = [ "turbot.com", "steampipe.io" ]
 }
 
 locals {

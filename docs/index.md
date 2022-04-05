@@ -20,7 +20,11 @@ Dashboards are available for 15+ checks based on DNS records, i.e NS, SOA, and M
 
 ## References
 
-TODO
+The Net plugin is a set of utility tables for steampipe to query attributes of X.509 certificates associated with websites, DNS records and connectivity to specific network socket addresses.
+
+[Steampipe](https://steampipe.io) is an open source CLI to instantly query cloud APIs using SQL.
+
+[Steampipe Mods](https://steampipe.io/docs/reference/mod-resources#mod) are collections of `named queries`, codified `controls` that can be used to test current configuration of your cloud resources against a desired configuration, and `dashboards` that organize and display key pieces of information.
 
 ## Documentation
 
@@ -29,10 +33,10 @@ TODO
 
 ## Get started
 
-Install the AWS plugin with [Steampipe](https://steampipe.io):
+Install the Net plugin with [Steampipe](https://steampipe.io):
 
 ```shell
-steampipe plugin install aws
+steampipe plugin install net
 ```
 
 Clone:
@@ -66,7 +70,7 @@ Start your dashboard server to get started:
 steampipe dashboard
 ```
 
-By default, the dashboard interface will then be launched in a new browser window at https://localhost:9194.
+By default, the dashboard interface will then be launched in a new browser window at `https://localhost:9194`.
 
 From here, you can view all of your dashboards and reports.
 

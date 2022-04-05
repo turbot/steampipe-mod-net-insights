@@ -1,7 +1,7 @@
 variable "site_url" {
   type        = list(string)
   description = "The website URL."
-  default     = [ "https://steampipe.io/", "https://github.com" ]
+  default     = [ "https://steampipe.io/", "https://turbot.com" ]
 }
 
 locals {

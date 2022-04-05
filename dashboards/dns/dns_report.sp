@@ -6,7 +6,6 @@ dashboard "dns_report" {
     title = "Select a domain:"
     width = 4
     option "turbot.com" {}
-    option "datadog.com" {}
     option "steampipe.io" {}
   }
 
@@ -16,7 +15,7 @@ dashboard "dns_report" {
     table {
       title = "Recommendations"
       width = 8
-      query = query.ns_recommendations
+      query = query.dns_recommendations
       args  = {
         domain_name = self.input.domain_name.value
       }
@@ -134,7 +133,7 @@ query "dns_mx_record" {
   param "domain_name" {}
 }
 
-query "ns_recommendations" {
+query "dns_recommendations" {
   sql = <<-EOQ
     with domain_ns_count as (
       select count(*) from net_dns_record where domain = $1 and type = 'NS' group by domain

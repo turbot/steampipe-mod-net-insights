@@ -1,2 +1,2 @@
-site_url = [ "https://steampipe.io/", "https://github.com" ]
-domain_name = [ "datadog.com" ]
+site_url = [ "https://steampipe.io/", "https://turbot.com" ]
+domain_name = [ "turbot.com", "steampipe.io" ]

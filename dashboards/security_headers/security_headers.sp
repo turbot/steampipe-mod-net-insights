@@ -15,7 +15,7 @@ dashboard "website_header_check" {
     card {
       width = 2
 
-      query = query.strict_transport_security_check
+      query = query.security_headers_strict_transport_security_check
       args = {
         site_url = self.input.site_url.value
       }
@@ -24,7 +24,7 @@ dashboard "website_header_check" {
     card {
       width = 2
 
-      query = query.content_security_policy_check
+      query = query.security_headers_content_security_policy_check
       args = {
         site_url = self.input.site_url.value
       }
@@ -33,7 +33,7 @@ dashboard "website_header_check" {
     card {
       width = 2
 
-      query = query.x_frame_options_check
+      query = query.security_headers_x_frame_options_check
       args = {
         site_url = self.input.site_url.value
       }
@@ -42,7 +42,7 @@ dashboard "website_header_check" {
     card {
       width = 2
 
-      query = query.x_content_type_options_check
+      query = query.security_headers_x_content_type_options_check
       args = {
         site_url = self.input.site_url.value
       }
@@ -51,7 +51,7 @@ dashboard "website_header_check" {
     card {
       width = 2
 
-      query = query.referrer_policy_check
+      query = query.security_headers_referrer_policy_check
       args = {
         site_url = self.input.site_url.value
       }
@@ -60,7 +60,7 @@ dashboard "website_header_check" {
     card {
       width = 2
 
-      query = query.permissions_policy_check
+      query = query.security_headers_permissions_policy_check
       args = {
         site_url = self.input.site_url.value
       }
@@ -68,31 +68,32 @@ dashboard "website_header_check" {
   }
 
   container {
-    container {
-      table {
-        title = "Missing Headers"
-        query = query.missing_headers
-        args  = {
-          site_url = self.input.site_url.value
-        }
+
+    table {
+      title = "Raw Headers"
+      width = 6
+      query = query.security_headers_raw_header_list
+      args  = {
+        site_url = self.input.site_url.value
       }
     }
 
-    container {
+    table {
+      title = "Missing Headers"
       width = 6
+      query = query.security_headers_missing_headers
+      args  = {
+        site_url = self.input.site_url.value
+      }
 
-      table {
-        title = "Raw Headers"
-        query = query.raw_header_list
-        args  = {
-          site_url = self.input.site_url.value
-        }
+      column "Description" {
+        wrap = "all"
       }
     }
   }
 }
 
-query "raw_header_list" {
+query "security_headers_raw_header_list" {
   sql = <<-EOQ
     select
       header.key as "Header",
@@ -107,7 +108,7 @@ query "raw_header_list" {
   param "site_url" {}
 }
 
-query "missing_headers" {
+query "security_headers_missing_headers" {
   sql = <<-EOQ
     with available_headers as (
       select
@@ -144,7 +145,7 @@ query "missing_headers" {
   param "site_url" {}
 }
 
-query "strict_transport_security_check" {
+query "security_headers_strict_transport_security_check" {
   sql = <<-EOQ
     select
       case
@@ -165,7 +166,7 @@ query "strict_transport_security_check" {
   param "site_url" {}
 }
 
-query "content_security_policy_check" {
+query "security_headers_content_security_policy_check" {
   sql = <<-EOQ
     select
       case
@@ -186,7 +187,7 @@ query "content_security_policy_check" {
   param "site_url" {}
 }
 
-query "x_frame_options_check" {
+query "security_headers_x_frame_options_check" {
   sql = <<-EOQ
     select
       case
@@ -207,7 +208,7 @@ query "x_frame_options_check" {
   param "site_url" {}
 }
 
-query "x_content_type_options_check" {
+query "security_headers_x_content_type_options_check" {
   sql = <<-EOQ
     select
       case
@@ -228,7 +229,7 @@ query "x_content_type_options_check" {
   param "site_url" {}
 }
 
-query "referrer_policy_check" {
+query "security_headers_referrer_policy_check" {
   sql = <<-EOQ
     select
       case
@@ -249,7 +250,7 @@ query "referrer_policy_check" {
   param "site_url" {}
 }
 
-query "permissions_policy_check" {
+query "security_headers_permissions_policy_check" {
   sql = <<-EOQ
     select
       case

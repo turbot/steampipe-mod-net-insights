@@ -29,8 +29,38 @@ benchmark "parent_checks" {
   documentation = file("./controls/docs/dns_parent_overview.md")
   tags          = local.dns_check_common_tags
   children = [
+    control.dns_record_found,
     control.ns_all_with_type_a_record
   ]
+}
+
+control "dns_record_found" {
+  title       = "DNS record must be present"
+  description = "The record must be present for a domain."
+  severity    = "low"
+
+  sql = <<-EOT
+    select
+      domain as resource,
+      case
+        when count(*) = 0 then 'alarm'
+        else 'ok'
+      end as status,
+      case
+        when count(*) = 0 then 'DNS record not found for ' || domain || '.'
+        else 'DNS record found for ' || domain || '.'
+      end as reason
+    from
+      net_dns_record
+    where
+      domain in (select jsonb_array_elements_text(to_jsonb($1::text[])))
+    group by domain;
+  EOT
+
+  param "domain_name" {
+    description = "The website URL."
+    default     = var.domain_name
+  }
 }
 
 control "ns_all_with_type_a_record" {
@@ -95,42 +125,12 @@ benchmark "ns_checks" {
   documentation = file("./controls/docs/dns_ns_overview.md")
   tags          = local.dns_check_common_tags
   children = [
-    control.dns_record_found,
     control.dns_ns_name_valid,
     control.dns_ns_at_least_two,
     control.dns_ns_responded,
     control.dns_local_ns_matches_parent_ns_list,
     control.dns_ns_on_different_subnets
   ]
-}
-
-control "dns_record_found" {
-  title       = "DNS Record must be present"
-  description = "The record must be present for a domain."
-  severity    = "low"
-
-  sql = <<-EOT
-    select
-      domain as resource,
-      case
-        when count(*) = 0 then 'alarm'
-        else 'ok'
-      end as status,
-      case
-        when count(*) = 0 then 'DNS record not found for ' || domain || '.'
-        else 'DNS record found for ' || domain || '.'
-      end as reason
-    from
-      net_dns_record
-    where
-      domain in (select jsonb_array_elements_text(to_jsonb($1::text[])))
-    group by domain;
-  EOT
-
-  param "domain_name" {
-    description = "The website URL."
-    default     = var.domain_name
-  }
 }
 
 control "dns_ns_name_valid" {
@@ -187,7 +187,7 @@ control "dns_ns_at_least_two" {
         when count(*) < 2 then 'alarm'
         else 'ok'
       end as status,
-      domain ||  ' has ' || count(*) || ' name servers.' as reason
+      domain || ' has ' || count(*) || ' name servers.' as reason
     from
       net_dns_record
     where
@@ -205,7 +205,7 @@ control "dns_ns_at_least_two" {
 }
 
 control "dns_ns_responded" {
-  title       = "All nameservers listed at the parent server should respond"
+  title       = "All name servers listed at the parent server should respond"
   description = "It is recommended that all name servers listed at parent server should respond individually and return same NS record as parent."
   severity    = "low"
 
@@ -241,7 +241,7 @@ control "dns_ns_responded" {
       end as status,
       case
         when nic.count = pow(nc.count, 2) then nc.domain || ' name servers are responding.'
-        else 'At least one name server in ' || nc.domain ||  ' failed to respond in a timely manner.'
+        else 'At least one name server in ' || nc.domain || ' failed to respond in a timely manner.'
       end as reason
     from
       ns_count as nc,
@@ -293,8 +293,8 @@ control "dns_local_ns_matches_parent_ns_list" {
         else 'alarm'
       end as status,
       case
-        when nic.count = pow(nc.count, 2) then nc.domain || ' NS records are the same at the parent and at your nameservers.'
-        else nc.domain ||  ' local NS list does not match parent NS list.'
+        when nic.count = pow(nc.count, 2) then nc.domain || ' NS records are the same at the parent and at your name servers.'
+        else nc.domain || ' local NS list does not match parent NS list.'
       end as reason
     from
       ns_count as nc,
@@ -495,7 +495,6 @@ control "dns_soa_serial_check" {
       domain as resource,
       case
         when (select serial::text ~ '^\d{4}[0-1]{1}[0-9]{1}[0-3]{1}[0-9]{1}\d{2}$') then 'ok'
-        when serial > 1 or refresh < 4294967295 and not (select serial::text ~ '^\d{4}[0-1]{1}[0-9]{1}[0-3]{1}[0-9]{1}\d{2}$') then 'info'
         else 'alarm'
       end as status,
       case
@@ -595,7 +594,7 @@ control "dns_soa_expire_value_check" {
 
 control "dns_soa_min_ttl_value_check" {
   title       = "DNS SOA minimum TTL value should be between 10 minutes to 24 hours"
-  description = "Time To Live(TTL) is the sort of expiration date that is put on a DNS record. The TTL serves to tell the recursive server or local resolver how long it should keep said record in its cache. The longer the TTL, the longer the resolver holds that information in its cache."
+  description = "Time To Live (TTL) is the sort of expiration date that is put on a DNS record. The TTL serves to tell the recursive server or local resolver how long it should keep said record in its cache. The longer the TTL, the longer the resolver holds that information in its cache."
   severity    = "low"
 
   sql = <<-EOT
@@ -623,7 +622,7 @@ benchmark "mx_checks" {
   title         = "Mail Exchange (MX)"
   description   = "MX checks."
   documentation = file("./controls/docs/dns_mx_overview.md")
-  #tags          = local.dns_check_common_tags
+  tags          = local.dns_check_common_tags
   children = [
     control.dns_mx_all_ip_public,
     control.dns_mx_not_contain_ip,
@@ -735,7 +734,7 @@ control "dns_mx_at_least_two" {
         when count(*) < 2 then 'alarm'
         else 'ok'
       end as status,
-      domain ||  ' has ' || count(*) || ' MX record(s).' as reason
+      domain || ' has ' || count(*) || ' MX record(s).' as reason
     from
       net_dns_record
     where

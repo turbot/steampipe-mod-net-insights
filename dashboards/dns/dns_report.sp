@@ -299,7 +299,6 @@ query "dns_recommendations" {
       'SOA Serial' as "Recommendation",
       case
         when (select serial::text ~ '^\d{4}[0-1]{1}[0-9]{1}[0-3]{1}[0-9]{1}\d{2}$') then 'Passed'
-        when serial > 1 or refresh < 4294967295 and not (select serial::text ~ '^\d{4}[0-1]{1}[0-9]{1}[0-3]{1}[0-9]{1}\d{2}$') then 'info'
         else 'Failed'
       end as "Status",
       case
@@ -414,7 +413,7 @@ query "dns_recommendations" {
     UNION
     select
       'MX' as "Type",
-      'Duplicate MX A records' as "Recommendation",
+      'No Duplicate MX A records' as "Recommendation",
       case
         when p.domain is null then 'Passed'
         else 'Failed'

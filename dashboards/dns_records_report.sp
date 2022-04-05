@@ -1,6 +1,6 @@
-dashboard "dns_report" {
+dashboard "dns_records_report" {
 
-  title = "DNS Report"
+  title = "DNS Records Report"
 
   input "domain_name" {
     title = "Select a domain:"

@@ -102,7 +102,7 @@ dashboard "security_headers_report" {
 query "security_headers_url_input" {
   sql = <<-EOQ
     select
-      split_part(url, '//', 2) as label,
+      url as label,
       url as value
     from
       jsonb_array_elements_text(to_jsonb($1::text[])) as url

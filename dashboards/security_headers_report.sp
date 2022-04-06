@@ -2,7 +2,7 @@
 variable "url_input" {
   type        = list(string)
   description = "The website URL."
-  default     = ["https://microsoft.com", "https://turbot.com", "https://steampipe.io"]
+  default     = ["https://microsoft.com", "https://github.com", "https://turbot.com", "https://steampipe.io"]
 }
 
 dashboard "security_headers_report" {
@@ -81,6 +81,10 @@ dashboard "security_headers_report" {
       query = query.security_headers_raw_header_list
       args  = {
         site_url = self.input.site_url.value
+      }
+
+      column "Value" {
+        wrap = "all"
       }
     }
 

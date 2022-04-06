@@ -6,6 +6,8 @@ repository: "https://github.com/turbot/steampipe-mod-net-insights"
 
 Run individual configuration, compliance and security controls or full compliance benchmarks to validate security best practices based on DNS and website response headers.
 
+<img src="https://raw.githubusercontent.com/turbot/steampipe-mod-net-insights/initial-dashboard-compliance/docs/images/net_security_headers_report.png" width="50%" type="thumbnail"/>
+
 ## Overview
 
 Dashboards can help answer questions like:

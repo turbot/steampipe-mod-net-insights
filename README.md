@@ -2,6 +2,8 @@
 
 20+ checks covering industry defined security best practices based on DNS and website response headers.
 
+![image](https://raw.githubusercontent.com/turbot/steampipe-mod-net-insights/initial-dashboard-compliance/docs/images/net_security_headers_report.png)
+
 ## Quick start
 
 1) Download and install Steampipe (https://steampipe.io/downloads). Or use Brew:

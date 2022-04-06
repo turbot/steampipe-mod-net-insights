@@ -294,7 +294,7 @@ control "dns_local_ns_matches_parent_ns_list" {
       end as status,
       case
         when nic.count = pow(nc.count, 2) then nc.domain || ' NS records are the same at the parent and at your name servers.'
-        else nc.domain || ' local NS list does not match parent NS list.'
+        else nc.domain || ' has at least 1 name server that doesn''t return same records compared to parent record.'
       end as reason
     from
       ns_count as nc,

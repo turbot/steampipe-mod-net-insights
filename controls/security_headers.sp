@@ -37,8 +37,8 @@ control "security_headers_strict_transport_security" {
         url,
         array_agg(header.key)
       from
-        net_request,
-        jsonb_each(headers) as header
+        net_web_request,
+        jsonb_each(response_headers) as header
       where
         url in (select jsonb_array_elements_text(to_jsonb($1::text[])))
       group by url
@@ -75,8 +75,8 @@ control "security_headers_content_security_policy" {
         url,
         array_agg(header.key)
       from
-        net_request,
-        jsonb_each(headers) as header
+        net_web_request,
+        jsonb_each(response_headers) as header
       where
         url in (select jsonb_array_elements_text(to_jsonb($1::text[])))
       group by url
@@ -113,8 +113,8 @@ control "security_headers_x_frame_options" {
         url,
         array_agg(header.key)
       from
-        net_request,
-        jsonb_each(headers) as header
+        net_web_request,
+        jsonb_each(response_headers) as header
       where
         url in (select jsonb_array_elements_text(to_jsonb($1::text[])))
       group by url
@@ -151,8 +151,8 @@ control "security_headers_x_content_type_options" {
         url,
         array_agg(header.key)
       from
-        net_request,
-        jsonb_each(headers) as header
+        net_web_request,
+        jsonb_each(response_headers) as header
       where
         url in (select jsonb_array_elements_text(to_jsonb($1::text[])))
       group by url
@@ -189,8 +189,8 @@ control "security_headers_referrer_policy" {
         url,
         array_agg(header.key)
       from
-        net_request,
-        jsonb_each(headers) as header
+        net_web_request,
+        jsonb_each(response_headers) as header
       where
         url in (select jsonb_array_elements_text(to_jsonb($1::text[])))
       group by url
@@ -227,8 +227,8 @@ control "security_headers_permissions_policy" {
         url,
         array_agg(header.key)
       from
-        net_request,
-        jsonb_each(headers) as header
+        net_web_request,
+        jsonb_each(response_headers) as header
       where
         url in (select jsonb_array_elements_text(to_jsonb($1::text[])))
       group by url

@@ -1,3 +1,10 @@
+# TODO::Use same variable name as default spvars
+variable "url_input" {
+  type        = list(string)
+  description = "The website URL."
+  default     = ["https://microsoft.com", "https://turbot.com", "https://steampipe.io"]
+}
+
 dashboard "security_headers_report" {
 
   title = "Security Headers Report"
@@ -5,9 +12,7 @@ dashboard "security_headers_report" {
   input "site_url" {
     title = "Select an address:"
     width = 4
-    option "https://turbot.com" { label = "turbot.com" }
-    option "https://steampipe.io" { label = "steampipe.io" }
-    option "https://amazon.com" { label = "amazon.com" }
+    query = query.security_headers_url_input
   }
 
   container {
@@ -94,14 +99,30 @@ dashboard "security_headers_report" {
   }
 }
 
+query "security_headers_url_input" {
+  sql = <<-EOQ
+    select
+      split_part(url, '//', 2) as label,
+      url as value
+    from
+      jsonb_array_elements_text(to_jsonb($1::text[])) as url
+  EOQ
+
+  param "url_input" {
+    description = "The website URL."
+    default     = var.url_input
+  }
+}
+
+# Raw headers
 query "security_headers_raw_header_list" {
   sql = <<-EOQ
     select
       header.key as "Header",
       (select string_agg(val, ',') from jsonb_array_elements_text(header.value) as val) as "Value"
     from
-      net_request,
-      jsonb_each(headers) as header
+      net_web_request,
+      jsonb_each(response_headers) as header
     where
       url = $1;
   EOQ
@@ -109,14 +130,15 @@ query "security_headers_raw_header_list" {
   param "site_url" {}
 }
 
+# Missing headers
 query "security_headers_missing_headers" {
   sql = <<-EOQ
     with available_headers as (
       select
         array_agg(header.key)
       from
-        net_request,
-        jsonb_each(headers) as header
+        net_web_request,
+        jsonb_each(response_headers) as header
       where
         url = $1
     ),
@@ -146,20 +168,21 @@ query "security_headers_missing_headers" {
   param "site_url" {}
 }
 
+# Cards
 query "security_headers_strict_transport_security_check" {
   sql = <<-EOQ
     select
       case
-        when header_strict_transport_security is not null then 'Present'
+        when response_headers -> 'Strict-Transport-Security' is not null then 'Present'
         else 'Missing'
       end as value,
       case
-        when header_strict_transport_security is not null then 'ok'
+        when response_headers -> 'Strict-Transport-Security' is not null then 'ok'
         else 'alert'
       end as type,
       'Strict-Transport-Security' as label
     from
-      net_request
+      net_web_request
     where
       url = $1;
   EOQ
@@ -171,16 +194,16 @@ query "security_headers_content_security_policy_check" {
   sql = <<-EOQ
     select
       case
-        when header_content_security_policy is not null then 'Present'
+        when response_headers -> 'Content-Security-Policy' is not null then 'Present'
         else 'Missing'
       end as value,
       case
-        when header_content_security_policy is not null then 'ok'
+        when response_headers -> 'Content-Security-Policy' is not null then 'ok'
         else 'alert'
       end as type,
       'Content-Security-Policy' as label
     from
-      net_request
+      net_web_request
     where
       url = $1;
   EOQ
@@ -192,16 +215,16 @@ query "security_headers_x_frame_options_check" {
   sql = <<-EOQ
     select
       case
-        when header_x_frame_options is not null then 'Present'
+        when response_headers -> 'X-Frame-Options' is not null then 'Present'
         else 'Missing'
       end as value,
       case
-        when header_x_frame_options is not null then 'ok'
+        when response_headers -> 'X-Frame-Options' is not null then 'ok'
         else 'alert'
       end as type,
       'X-Frame-Options' as label
     from
-      net_request
+      net_web_request
     where
       url = $1;
   EOQ
@@ -213,16 +236,16 @@ query "security_headers_x_content_type_options_check" {
   sql = <<-EOQ
     select
       case
-        when header_x_content_type_options is not null then 'Present'
+        when response_headers -> 'X-Content-Type-Options' is not null then 'Present'
         else 'Missing'
       end as value,
       case
-        when header_x_content_type_options is not null then 'ok'
+        when response_headers -> 'X-Content-Type-Options' is not null then 'ok'
         else 'alert'
       end as type,
       'X-Content-Type-Options' as label
     from
-      net_request
+      net_web_request
     where
       url = $1;
   EOQ
@@ -234,16 +257,16 @@ query "security_headers_referrer_policy_check" {
   sql = <<-EOQ
     select
       case
-        when header_referrer_policy is not null then 'Present'
+        when response_headers -> 'Referrer-Policy' is not null then 'Present'
         else 'Missing'
       end as value,
       case
-        when header_referrer_policy is not null then 'ok'
+        when response_headers -> 'Referrer-Policy' is not null then 'ok'
         else 'alert'
       end as type,
       'Referrer-Policy' as label
     from
-      net_request
+      net_web_request
     where
       url = $1;
   EOQ
@@ -255,16 +278,16 @@ query "security_headers_permissions_policy_check" {
   sql = <<-EOQ
     select
       case
-        when header_permissions_policy is not null then 'Present'
+        when response_headers -> 'Permissions-Policy' is not null then 'Present'
         else 'Missing'
       end as value,
       case
-        when header_permissions_policy is not null then 'ok'
+        when response_headers -> 'Permissions-Policy' is not null then 'ok'
         else 'alert'
       end as type,
       'Permissions-Policy' as label
     from
-      net_request
+      net_web_request
     where
       url = $1;
   EOQ

@@ -1,15 +1,8 @@
-# TODO::Use same variable name as default spvars
-variable "url_input" {
-  type        = list(string)
-  description = "The website URL."
-  default     = ["https://microsoft.com", "https://github.com", "https://turbot.com", "https://steampipe.io"]
-}
-
 dashboard "security_headers_report" {
 
   title = "Security Headers Report"
 
-  input "site_url" {
+  input "site_url_input" {
     title = "Select an address:"
     width = 4
     query = query.security_headers_url_input
@@ -23,7 +16,7 @@ dashboard "security_headers_report" {
 
       query = query.security_headers_x_content_type_options_check
       args = {
-        site_url = self.input.site_url.value
+        site_url_input = self.input.site_url_input.value
       }
     }
 
@@ -32,7 +25,7 @@ dashboard "security_headers_report" {
 
       query = query.security_headers_strict_transport_security_check
       args = {
-        site_url = self.input.site_url.value
+        site_url_input = self.input.site_url_input.value
       }
     }
 
@@ -41,7 +34,7 @@ dashboard "security_headers_report" {
 
       query = query.security_headers_x_frame_options_check
       args = {
-        site_url = self.input.site_url.value
+        site_url_input = self.input.site_url_input.value
       }
     }
 
@@ -50,7 +43,7 @@ dashboard "security_headers_report" {
 
       query = query.security_headers_permissions_policy_check
       args = {
-        site_url = self.input.site_url.value
+        site_url_input = self.input.site_url_input.value
       }
     }
 
@@ -59,7 +52,7 @@ dashboard "security_headers_report" {
 
       query = query.security_headers_content_security_policy_check
       args = {
-        site_url = self.input.site_url.value
+        site_url_input = self.input.site_url_input.value
       }
     }
 
@@ -68,7 +61,7 @@ dashboard "security_headers_report" {
 
       query = query.security_headers_referrer_policy_check
       args = {
-        site_url = self.input.site_url.value
+        site_url_input = self.input.site_url_input.value
       }
     }
   }
@@ -80,7 +73,7 @@ dashboard "security_headers_report" {
       width = 6
       query = query.security_headers_raw_header_list
       args  = {
-        site_url = self.input.site_url.value
+        site_url_input = self.input.site_url_input.value
       }
 
       column "Value" {
@@ -93,7 +86,7 @@ dashboard "security_headers_report" {
       width = 6
       query = query.security_headers_missing_headers
       args  = {
-        site_url = self.input.site_url.value
+        site_url_input = self.input.site_url_input.value
       }
 
       column "Description" {
@@ -112,9 +105,9 @@ query "security_headers_url_input" {
       jsonb_array_elements_text(to_jsonb($1::text[])) as url
   EOQ
 
-  param "url_input" {
+  param "site_url" {
     description = "The website URL."
-    default     = var.url_input
+    default     = var.site_url
   }
 }
 
@@ -131,7 +124,7 @@ query "security_headers_raw_header_list" {
       url = $1;
   EOQ
 
-  param "site_url" {}
+  param "site_url_input" {}
 }
 
 # Missing headers
@@ -169,7 +162,7 @@ query "security_headers_missing_headers" {
       missing_headers;
   EOQ
 
-  param "site_url" {}
+  param "site_url_input" {}
 }
 
 # Cards
@@ -191,7 +184,7 @@ query "security_headers_strict_transport_security_check" {
       url = $1;
   EOQ
 
-  param "site_url" {}
+  param "site_url_input" {}
 }
 
 query "security_headers_content_security_policy_check" {
@@ -212,7 +205,7 @@ query "security_headers_content_security_policy_check" {
       url = $1;
   EOQ
 
-  param "site_url" {}
+  param "site_url_input" {}
 }
 
 query "security_headers_x_frame_options_check" {
@@ -233,7 +226,7 @@ query "security_headers_x_frame_options_check" {
       url = $1;
   EOQ
 
-  param "site_url" {}
+  param "site_url_input" {}
 }
 
 query "security_headers_x_content_type_options_check" {
@@ -254,7 +247,7 @@ query "security_headers_x_content_type_options_check" {
       url = $1;
   EOQ
 
-  param "site_url" {}
+  param "site_url_input" {}
 }
 
 query "security_headers_referrer_policy_check" {
@@ -275,7 +268,7 @@ query "security_headers_referrer_policy_check" {
       url = $1;
   EOQ
 
-  param "site_url" {}
+  param "site_url_input" {}
 }
 
 query "security_headers_permissions_policy_check" {
@@ -296,5 +289,5 @@ query "security_headers_permissions_policy_check" {
       url = $1;
   EOQ
 
-  param "site_url" {}
+  param "site_url_input" {}
 }

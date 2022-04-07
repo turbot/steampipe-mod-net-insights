@@ -1,15 +1,8 @@
-# TODO::Use same variable name as default spvars
-variable "domain_input" {
-  type        = list(string)
-  description = "The name of the domain."
-  default     = ["github.com", "turbot.com", "steampipe.io"]
-}
-
 dashboard "dns_records_report" {
 
   title = "DNS Records Report"
 
-  input "domain_name" {
+  input "domain_name_input" {
     title = "Select a domain:"
     width = 4
     query = query.dns_domain_input
@@ -24,7 +17,7 @@ dashboard "dns_records_report" {
       width = 6
       query = query.dns_ns_record
       args  = {
-        domain_name = self.input.domain_name.value
+        domain_name_input = self.input.domain_name_input.value
       }
     }
 
@@ -32,7 +25,7 @@ dashboard "dns_records_report" {
       width = 6
       query = query.dns_ns_report
       args  = {
-        domain_name = self.input.domain_name.value
+        domain_name_input = self.input.domain_name_input.value
       }
       
       column "Result" {
@@ -55,7 +48,7 @@ dashboard "dns_records_report" {
       width = 6
       query = query.dns_soa_record
       args  = {
-        domain_name = self.input.domain_name.value
+        domain_name_input = self.input.domain_name_input.value
       }
     }
 
@@ -63,7 +56,7 @@ dashboard "dns_records_report" {
       width = 6
       query = query.dns_soa_report
       args  = {
-        domain_name = self.input.domain_name.value
+        domain_name_input = self.input.domain_name_input.value
       }
       
       column "Result" {
@@ -85,7 +78,7 @@ dashboard "dns_records_report" {
       width = 6
       query = query.dns_mx_record
       args  = {
-        domain_name = self.input.domain_name.value
+        domain_name_input = self.input.domain_name_input.value
       }
     }
 
@@ -93,7 +86,7 @@ dashboard "dns_records_report" {
       width = 6
       query = query.dns_mx_report
       args  = {
-        domain_name = self.input.domain_name.value
+        domain_name_input = self.input.domain_name_input.value
       }
       
       column "Result" {
@@ -116,9 +109,9 @@ query "dns_domain_input" {
       jsonb_array_elements_text(to_jsonb($1::text[])) as domain
   EOQ
 
-  param "domain_input" {
+  param "domain_name" {
     description = "The website URL."
-    default     = var.domain_input
+    default     = var.domain_name
   }
 }
 
@@ -148,7 +141,7 @@ query "dns_ns_record" {
     order by domain_records.target;
   EOQ
 
-  param "domain_name" {}
+  param "domain_name_input" {}
 }
 
 query "dns_soa_record" {
@@ -169,7 +162,7 @@ query "dns_soa_record" {
     order by target;
   EOQ
 
-  param "domain_name" {}
+  param "domain_name_input" {}
 }
 
 query "dns_mx_record" {
@@ -194,7 +187,7 @@ query "dns_mx_record" {
     order by domain_records.priority;
   EOQ
 
-  param "domain_name" {}
+  param "domain_name_input" {}
 }
 
 query "dns_ns_report" {
@@ -311,7 +304,7 @@ query "dns_ns_report" {
     group by domain
   EOQ
 
-  param "domain_name" {}
+  param "domain_name_input" {}
 }
 
 query "dns_soa_report" {
@@ -390,7 +383,7 @@ query "dns_soa_report" {
       and type = 'SOA'
   EOQ
 
-  param "domain_name" {}
+  param "domain_name_input" {}
 }
 
 query "dns_mx_report" {
@@ -505,5 +498,5 @@ query "dns_mx_report" {
       left join mx_public_ips_count_by_domain as p on d.domain = p.domain
   EOQ
 
-  param "domain_name" {}
+  param "domain_name_input" {}
 }

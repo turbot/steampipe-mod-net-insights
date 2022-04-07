@@ -129,7 +129,10 @@ benchmark "ns_checks" {
     control.dns_ns_at_least_two,
     control.dns_ns_responded,
     control.dns_local_ns_matches_parent_ns_list,
-    control.dns_ns_on_different_subnets
+    control.dns_no_cname_with_other_record,
+    control.dns_ns_on_different_subnets,
+    control.dns_ns_all_ip_public,
+    control.dns_ns_different_autonomous_systems
   ]
 }
 
@@ -310,6 +313,51 @@ control "dns_local_ns_matches_parent_ns_list" {
   }
 }
 
+control "dns_no_cname_with_other_record" {
+  title       = "DNS record should not contain CNAME record if an NS (or any other) record is present"
+  description = "A CNAME record is not allowed to coexist with any other data. This is often attempted by inexperienced administrators as an obvious way to allow your domain name to also be a host. However, DNS servers like BIND will see the CNAME and refuse to add any other resources for that name. Since no other records are allowed to coexist with a CNAME, the NS entries are ignored."
+  severity    = "low"
+
+  sql = <<-EOT
+    with domain_list as (
+      select distinct domain from net_dns_record where domain in (select jsonb_array_elements_text(to_jsonb($1::text[]))) order by domain
+    ),
+    dns_record_count as (
+      select domain, count(*) from net_dns_record where domain in (select domain from domain_list) group by domain
+    ),
+    dns_cname_count as (
+      select domain, count(*) from net_dns_record where domain in (select domain from domain_list) and type = 'CNAME' group by domain
+    ),
+    count_stats as (
+      select
+        domain,
+        (select count from dns_record_count where domain = domain_list.domain) as all_record_count,
+        (select count from dns_cname_count where domain = domain_list.domain) as cname_record_count
+      from
+        domain_list
+    )
+    select
+      domain as resource,
+      case
+        when all_record_count > 0 and (cname_record_count is null or cname_record_count < 1) then 'ok'
+        when cname_record_count > 0 and all_record_count = cname_record_count then 'ok'
+        else 'alarm'
+      end as status,
+      case
+        when all_record_count > 0 and (cname_record_count is null or cname_record_count < 1) then domain || ' has no CNAME record.'
+        when cname_record_count > 0 and all_record_count = cname_record_count then domain || ' has CNAME record [' || (select string_agg(target, ', ') from net_dns_record where domain = count_stats.domain) || '].'
+        else domain || ' has CNAME record along with NS (or any other) record.'
+      end as reason
+    from
+      count_stats;
+  EOT
+
+  param "domain_name" {
+    description = "The website URL."
+    default     = var.domain_name
+  }
+}
+
 control "dns_ns_on_different_subnets" {
   title       = "DNS name servers should be on different subnets"
   description = "Having more than 1 name server in the same class C subnet is not recommended, as this increases the likelihood of a single failure disabling all of your name servers."
@@ -352,6 +400,109 @@ control "dns_ns_on_different_subnets" {
       case
         when count(*) = 1 then domain || ' name servers are on the same subnet.'
         else domain || ' name servers appear to be dispersed.'
+      end as reason
+    from
+      check_ips
+    group by domain;
+  EOT
+
+  param "domain_name" {
+    description = "The website URL."
+    default     = var.domain_name
+  }
+}
+
+control "dns_ns_all_ip_public" {
+  title       = "DNS NS records should use public IPs"
+  description = "For a server to be accessible on the public internet, it needs a public DNS record, and its IP address needs to be reachable on the internet."
+  severity    = "low"
+
+  sql = <<-EOT
+    with domain_list as (
+      select distinct domain from net_dns_record where domain in (select jsonb_array_elements_text(to_jsonb($1::text[]))) order by domain
+    ),
+    domain_ns_records as (
+      select domain, target from net_dns_record where domain in (select domain from domain_list) and type = 'NS' order by domain
+    ),
+    ns_ips as (
+      select * from net_dns_record where domain in (select target from domain_ns_records) and type = 'A'
+    ),
+    ns_record_with_ip as (
+      select
+        domain_ns_records.domain,
+        domain_ns_records.target,
+        ns_ips.ip,
+        (ns_ips.ip << '10.0.0.0/8'::inet or ns_ips.ip << '100.64.0.0/10'::inet or ns_ips.ip << '172.16.0.0/12'::inet or ns_ips.ip << '192.0.0.0/24'::inet or ns_ips.ip << '192.168.0.0/16'::inet or ns_ips.ip << '198.18.0.0/15'::inet) as is_private
+      from
+        domain_ns_records
+        inner join ns_ips on domain_ns_records.target = ns_ips.domain
+    ),
+    ns_record_with_private_ip as (
+      select distinct domain from ns_record_with_ip where is_private
+    )
+    select
+      domain_list.domain as resource,
+      case
+        when ns_record_with_private_ip.domain is null then 'ok'
+        else 'alarm'
+      end as status,
+      case
+        when ns_record_with_private_ip.domain is null then 'All NS records in ' || domain_list.domain || ' appear to use public IPs.'
+        else domain_list.domain || ' has NS records using private IPs [' || (select host(ip) from ns_record_with_ip where domain = domain_list.domain and is_private) || '].'
+      end as reason
+    from
+      domain_list
+      left join ns_record_with_private_ip on domain_list.domain = ns_record_with_private_ip.domain;
+  EOT
+
+  param "domain_name" {
+    description = "The website URL."
+    default     = var.domain_name
+  }
+}
+
+control "dns_ns_different_autonomous_systems" {
+  title       = "DNS name servers should locate in different locations"
+  description = "Having more than 1 name server located in the same location is not recommended, as this increases the likelihood of a single failure disabling all of your name servers."
+  severity    = "low"
+
+  sql = <<-EOT
+    with domain_records as (
+      select
+        *
+      from
+        net_dns_record
+      where
+        domain in (select jsonb_array_elements_text(to_jsonb($1::text[])))
+    ),
+    ns_ips as (
+      select
+        *
+      from
+        net_dns_record
+      where
+        domain in ( select target from domain_records where type = 'NS' )
+    ),
+    check_ips as (
+      select
+        distinct array_to_string(array_remove(string_to_array(text(ns_ips.ip), '.'), split_part(text(ns_ips.ip), '.', 4)), '.'),
+        domain_records.domain as domain
+      from
+        domain_records
+        inner join ns_ips on domain_records.target = ns_ips.domain
+      where
+        ns_ips.type = 'A'
+        and domain_records.type = 'NS'
+    )
+    select
+      domain as resource,
+      case
+        when count(*) = 1 then 'alarm'
+        else 'ok'
+      end as status,
+      case
+        when count(*) = 1 then domain || ' have name servers located in same location.'
+        else domain || ' name servers are located in different locations.'
       end as reason
     from
       check_ips
@@ -624,11 +775,44 @@ benchmark "mx_checks" {
   documentation = file("./controls/docs/dns_mx_overview.md")
   tags          = local.dns_check_common_tags
   children = [
+    control.dns_mx_valid_hostname,
     control.dns_mx_all_ip_public,
     control.dns_mx_not_contain_ip,
     control.dns_mx_at_least_two,
     control.dns_mx_no_duplicate_a_record
   ]
+}
+
+control "dns_mx_valid_hostname" {
+  title       = "DNS MX records should have valid hostname"
+  description = "It is recommended that MX record should have a valid domain or sub domain name and the name not starts or ends with a dot(.)."
+  severity    = "low"
+
+  sql = <<-EOT
+    with domain_list as (
+      select distinct domain from net_dns_record where domain in (select jsonb_array_elements_text(to_jsonb($1::text[]))) order by domain
+    ),
+    mx_records as (
+      select domain, rtrim(target, '.') as target, rtrim(target, '.') ~ '^[^.].*[^-_.]$' as is_valid from net_dns_record where domain in (select domain from domain_list) and type = 'MX'
+    )
+    select
+      domain as resource,
+      case
+        when (select count(*) from mx_records where domain = domain_list.domain and not is_valid) > 0 then 'alarm'
+        else 'ok'
+      end as status,
+      case
+        when (select count(*) from mx_records where domain = domain_list.domain and not is_valid) > 0 then domain || ' has MX record(s) ' || (select string_agg(target, ', ') from mx_records where domain = domain_list.domain and not is_valid) || ' with invalid host name.'
+        else domain || ' has no MX records with invalid host name.'
+      end as reason
+    from
+      domain_list;
+  EOT
+
+  param "domain_name" {
+    description = "The website URL."
+    default     = var.domain_name
+  }
 }
 
 control "dns_mx_all_ip_public" {
@@ -637,41 +821,41 @@ control "dns_mx_all_ip_public" {
   severity    = "low"
 
   sql = <<-EOT
-    with domain_mx_records as (
-      select * from net_dns_record where domain in (select jsonb_array_elements_text(to_jsonb($1::text[]))) and type = 'MX'
+    with domain_list as (
+      select distinct domain from net_dns_record where domain in (select jsonb_array_elements_text(to_jsonb($1::text[]))) order by domain
     ),
-    domain_mx_count as (
-      select domain, count(*) from net_dns_record where domain in (select jsonb_array_elements_text(to_jsonb($1::text[]))) and type = 'MX' group by domain
+    domain_mx_records as (
+      select domain, target from net_dns_record where domain in (select domain from domain_list) and type = 'MX' order by domain
     ),
     mx_ips as (
       select * from net_dns_record where domain in (select target from domain_mx_records) and type = 'A'
     ),
-    mx_with_public_ips as (
+    mx_record_with_ip as (
       select
         domain_mx_records.domain,
         domain_mx_records.target,
-        count(*)
+        mx_ips.ip,
+        (mx_ips.ip << '10.0.0.0/8'::inet or mx_ips.ip << '100.64.0.0/10'::inet or mx_ips.ip << '172.16.0.0/12'::inet or mx_ips.ip << '192.0.0.0/24'::inet or mx_ips.ip << '192.168.0.0/16'::inet or mx_ips.ip << '198.18.0.0/15'::inet) as is_private
       from
         domain_mx_records
         inner join mx_ips on domain_mx_records.target = mx_ips.domain
-      group by domain_mx_records.domain, domain_mx_records.target
     ),
-    mx_with_public_ips_count as (
-      select domain, count(*) from mx_with_public_ips where count > 0 group by domain
+    mx_record_with_private_ip as (
+      select distinct domain from mx_record_with_ip where is_private
     )
     select
-      d.domain as resource,
+      domain_list.domain as resource,
       case
-        when d.count = p.count then 'ok'
+        when mx_record_with_private_ip.domain is null then 'ok'
         else 'alarm'
       end as status,
       case
-        when d.count = p.count then 'All MX records in ' || d.domain || ' appear to use public IPs.'
-        else 'All MX records in ' || d.domain || ' not using public IPs.'
+        when mx_record_with_private_ip.domain is null then 'All MX records in ' || domain_list.domain || ' appear to use public IPs.'
+        else domain_list.domain || ' has MX records using private IPs [' || (select host(ip) from mx_record_with_ip where domain = domain_list.domain and is_private) || '].'
       end as reason
     from
-      domain_mx_count as d
-      left join mx_with_public_ips_count as p on d.domain = p.domain;
+      domain_list
+      left join mx_record_with_private_ip on domain_list.domain = mx_record_with_private_ip.domain;
   EOT
 
   param "domain_name" {

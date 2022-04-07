@@ -204,6 +204,19 @@ query "dns_ns_report" {
     ns_with_ip as (
       select domain_ns_records.domain, host(ns_ips.ip) as ip_text from domain_ns_records inner join ns_ips on domain_ns_records.target = ns_ips.domain where ns_ips.type = 'A' order by domain_ns_records.domain
     ),
+    ns_record_with_ip as (
+      select
+        domain_ns_records.domain,
+        domain_ns_records.target,
+        ns_ips.ip,
+        (ns_ips.ip << '10.0.0.0/8'::inet or ns_ips.ip << '100.64.0.0/10'::inet or ns_ips.ip << '172.16.0.0/12'::inet or ns_ips.ip << '192.0.0.0/24'::inet or ns_ips.ip << '192.168.0.0/16'::inet or ns_ips.ip << '198.18.0.0/15'::inet) as is_private
+      from
+        domain_ns_records
+        inner join ns_ips on domain_ns_records.target = ns_ips.domain
+    ),
+    ns_record_with_private_ip as (
+      select distinct domain from ns_record_with_ip where is_private
+    ),
     ns_individual_count as (
       select
         d.domain,
@@ -243,6 +256,20 @@ query "dns_ns_report" {
       where
         ns_ips.type = 'A'
         and domain_ns_records.type = 'NS'
+    ),
+    dns_record_count as (
+      select domain, count(*) from net_dns_record where domain in (select domain from domain_list) group by domain
+    ),
+    dns_cname_count as (
+      select domain, count(*) from net_dns_record where domain in (select domain from domain_list) and type = 'CNAME' group by domain
+    ),
+    count_stats as (
+      select
+        domain,
+        (select count from dns_record_count where domain = domain_list.domain) as all_record_count,
+        (select count from dns_cname_count where domain = domain_list.domain) as cname_record_count
+      from
+        domain_list
     )
     select
       'Multiple name servers' as "Recommendation",
@@ -288,6 +315,24 @@ query "dns_ns_report" {
     group by nc.domain, nic.count, nc.count
     UNION
     select
+      'No CNAME record if an NS (or any other) record is present' as "Recommendation",
+      case
+        when all_record_count > 0 and (cname_record_count is null or cname_record_count < 1) then '✅'
+        when cname_record_count > 0 and all_record_count = cname_record_count then '✅'
+        else '❌'
+      end as "Status",
+      case
+        when all_record_count > 0 and (cname_record_count is null or cname_record_count < 1) then 'No CNAME record found.'
+        when cname_record_count > 0 and all_record_count = cname_record_count then 'CNAME record(s) [' || (select string_agg(target, ', ') from net_dns_record where domain = count_stats.domain) || '].'
+        else domain || ' has CNAME record along with NS (or any other) record.'
+      end
+        || ' A CNAME record is not allowed to coexist with any other data. This is often attempted by inexperienced administrators as an obvious way to
+          allow your domain name to also be a host. However, DNS servers like BIND will see the CNAME and refuse to add any other resources for that name.
+          Since no other records are allowed to coexist with a CNAME, the NS entries are ignored.' as "Result"
+    from
+      count_stats
+    UNION
+    select
       'Different subnets' as "Recommendation",
       case
         when count(*) = 1 then '❌'
@@ -302,6 +347,37 @@ query "dns_ns_report" {
     from
       check_ips
     group by domain
+    UNION
+    select
+      'IPs of name servers are public' as "Recommendation",
+      case
+        when ns_record_with_private_ip.domain is null then '✅'
+        else '❌'
+      end as "Status",
+      case
+        when ns_record_with_private_ip.domain is null then 'All NS records appear to use public IPs.'
+        else domain_list.domain || ' has NS records using private IPs [' || (select host(ip) from ns_record_with_ip where domain = domain_list.domain and is_private) || '].'
+      end
+        || ' For a server to be accessible on the public internet, it needs a public DNS record, and its IP address needs to be reachable on the internet.' as "Result"
+    from
+      domain_list
+      left join ns_record_with_private_ip on domain_list.domain = ns_record_with_private_ip.domain
+    UNION
+    select
+      'Different autonomous systems' as "Recommendation",
+      case
+        when count(*) = 1 then '❌'
+        else '✅'
+      end as "Status",
+      case
+        when count(*) = 1 then 'Name servers are in same location.'
+        else 'Name servers are located in different location.'
+      end
+        || ' As per RFC2182 section 3.1, it is recommended that the secondary servers must be placed at both topologically and
+          geographically dispersed locations on the Internet, to minimize the likelihood of a single failure disabling all of them.' as "Result"
+    from
+      check_ips
+    group by domain
   EOQ
 
   param "domain_name_input" {}
@@ -309,8 +385,45 @@ query "dns_ns_report" {
 
 query "dns_soa_report" {
   sql = <<-EOQ
+    with domain_list as (
+      select distinct domain from net_dns_record where domain = $1 order by domain
+    ),
+    domain_ns_records as (
+      select * from net_dns_record where domain in (select domain from domain_list) and type = 'NS' order by domain
+    ),
+    ns_ips as (
+      select * from net_dns_record where domain in (select target from domain_ns_records) order by domain
+    ),
+    ns_with_ip as (
+      select domain_ns_records.domain, host(ns_ips.ip) as ip_text from domain_ns_records inner join ns_ips on domain_ns_records.target = ns_ips.domain where ns_ips.type = 'A' order by domain_ns_records.domain
+    ),
+    unique_serial as (
+      select
+        distinct r.serial,
+        r.domain
+      from
+        net_dns_record as r
+        inner join ns_with_ip as i on r.domain = i.domain and r.dns_server = i.ip_text
+      where
+        r.type = 'SOA'
+    )
     select
-      'DNS SOA serial number should be between 1 and 4294967295' as "Recommendation",
+      'Name servers have same SOA serial' as "Recommendation",
+      case
+        when (select count(*) from unique_serial where domain = d.domain) is null or (select count(*) from unique_serial where domain = d.domain) > 1 then '❌'
+        else '✅'
+      end as "Status",
+      case
+        when (select count(*) from unique_serial where domain = d.domain) is null or (select count(*) from unique_serial where domain = d.domain) > 1
+          then 'At least one name server has different SOA serial.'
+        else 'All name servers have same SOA serial.'
+      end
+        || ' Sometimes serial numbers become out of sync when any record within a zone got updated and the changes are transferred from primary name server to other name servers. If the SOA serial number is not same for all NS record there might be a problem with the transfer.' as "Result"
+    from
+      domain_list as d
+    UNION
+    select
+      'SOA serial number should be between 1 and 4294967295' as "Recommendation",
       case
         when (select serial::text ~ '^\d{4}[0-1]{1}[0-9]{1}[0-3]{1}[0-9]{1}\d{2}$') then '✅'
         else '❌'
@@ -326,7 +439,7 @@ query "dns_soa_report" {
       and type = 'SOA'
     UNION
     select
-      'DNS SOA refresh value should be between 20 minutes and 12 hours' as "Recommendation",
+      'SOA refresh value should be between 20 minutes and 12 hours' as "Recommendation",
       case
         when refresh < 1200 or refresh > 43200 then '❌'
         else '✅'
@@ -341,7 +454,7 @@ query "dns_soa_report" {
       and type = 'SOA'
     UNION
     select
-      'DNS SOA retry value should be between 2 minutes and 2 hours' as "Recommendation",
+      'SOA retry value should be between 2 minutes and 2 hours' as "Recommendation",
       case
         when retry < 120 or retry > 7200 then '❌'
         else '✅'
@@ -355,7 +468,7 @@ query "dns_soa_report" {
       and type = 'SOA'
     UNION
     select
-      'DNS SOA expire value should be between 2 weeks and 4 weeks' as "Recommendation",
+      'SOA expire value should be between 2 weeks and 4 weeks' as "Recommendation",
       case
         when expire < 1209600 or expire > 2419200 then '❌'
         else '✅'
@@ -369,7 +482,7 @@ query "dns_soa_report" {
       and type = 'SOA'
     UNION
     select
-      'DNS SOA minimum TTL value should be between 10 minutes to 24 hours' as "Recommendation",
+      'SOA minimum TTL value should be between 10 minutes to 24 hours' as "Recommendation",
       case
         when min_ttl < 600 or min_ttl > 86400 then '❌'
         else '✅'
@@ -410,10 +523,20 @@ query "dns_mx_report" {
         inner join mx_ips on domain_mx_records.target = mx_ips.domain
       group by domain_mx_records.domain, domain_mx_records.target
     ),
-    mx_with_public_ips_count as (
-      select domain, count(*) from mx_with_public_ips where count > 0 group by domain
-    ),
     mx_record_with_ip as (
+      select
+        domain_mx_records.domain,
+        domain_mx_records.target,
+        mx_ips.ip,
+        (mx_ips.ip << '10.0.0.0/8'::inet or mx_ips.ip << '100.64.0.0/10'::inet or mx_ips.ip << '172.16.0.0/12'::inet or mx_ips.ip << '192.0.0.0/24'::inet or mx_ips.ip << '192.168.0.0/16'::inet or mx_ips.ip << '198.18.0.0/15'::inet) as is_private
+      from
+        domain_mx_records
+        inner join mx_ips on domain_mx_records.target = mx_ips.domain
+    ),
+    mx_record_with_private_ip as (
+      select distinct domain from mx_record_with_ip where is_private
+    ),
+    mx_record_with_ip_count as (
       select
         domain,
         count(*)
@@ -438,7 +561,24 @@ query "dns_mx_report" {
     ),
     mx_public_ips_count_by_domain as (
       select domain, count(*) from mx_count_public_ips where ip_usage_count > 1 group by domain
+    ),
+    mx_records as (
+      select domain, rtrim(target, '.') as target, rtrim(target, '.') ~ '^[^.].*[^-_.]$' as is_valid from net_dns_record where domain in (select domain from domain_list) and type = 'MX'
     )
+    select
+      'MX records valid hostname' as "Recommendation",
+      case
+        when (select count(*) from mx_records where domain = domain_list.domain and not is_valid) > 0 then '❌'
+        else '✅'
+      end as "Status",
+      case
+        when (select count(*) from mx_records where domain = domain_list.domain and not is_valid) > 0 then 'Invalid MX record hostname(s): ' || (select string_agg(target, ', ') from mx_records where domain = domain_list.domain and not is_valid) || '.'
+        else 'No MX records have invalid hostname.'
+      end
+        || ' It is recommended that MX record should have a valid domain or sub domain name and the name not starts or ends with a dot(.).' as "Result"
+    from
+      domain_list
+    UNION
     select
       'Multiple MX records' as "Recommendation",
       case
@@ -455,16 +595,17 @@ query "dns_mx_report" {
     select
       'MX IPs are public' as "Recommendation",
       case
-        when d.count = p.count then '✅'
+        when mx_record_with_private_ip.domain is null then '✅'
         else '❌'
       end as "Status",
       case
-        when d.count = p.count then 'All MX records appear to use public IPs.'
-        else 'At least one MX record not using public IPs.'
-      end as "Result"
+        when mx_record_with_private_ip.domain is null then 'All MX records appear to use public IPs.'
+        else domain_list.domain || ' has MX records using private IPs [' || (select host(ip) from mx_record_with_ip where domain = domain_list.domain and is_private) || '].'
+      end
+        || ' For a server to be accessible on the public internet, it needs a public DNS record, and its IP address needs to be reachable on the internet.' as "Result"
     from
-      domain_mx_count as d
-      left join mx_with_public_ips_count as p on d.domain = p.domain
+      domain_list
+      left join mx_record_with_private_ip on domain_list.domain = mx_record_with_private_ip.domain
     UNION
     select
       'MX is not IP' as "Recommendation",
@@ -480,7 +621,7 @@ query "dns_mx_report" {
           An IP address could not be used as it would be interpreted as an unqualified domain name, which cannot be resolved.' as "Result"
     from
       domain_list as d
-      left join mx_record_with_ip as i on d.domain = i.domain
+      left join mx_record_with_ip_count as i on d.domain = i.domain
     UNION
     select
       'No duplicate MX A records' as "Recommendation",

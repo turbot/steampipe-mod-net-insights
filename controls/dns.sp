@@ -30,7 +30,8 @@ benchmark "parent_checks" {
   tags          = local.dns_check_common_tags
   children = [
     control.dns_record_found,
-    control.ns_all_with_type_a_record
+    control.dns_ns_listed_at_parent,
+    control.dns_ns_all_with_type_a_record
   ]
 }
 
@@ -63,54 +64,86 @@ control "dns_record_found" {
   }
 }
 
-control "ns_all_with_type_a_record" {
-  title       = "Every name server listed must have A records"
-  description = "It is recommended that every name server listed in parent should have A record."
+control "dns_ns_listed_at_parent" {
+  title       = "DNS parent server should have name server information"
+  description = "It is highly recommended that the parent server should have information for all your name server, so that if anyone want your domain information and does not know DNS server can ask parent server for information."
   severity    = "high"
 
   sql = <<-EOT
-    with domain_ns_records as (
-      select
-        *
-      from
-        net_dns_record
-      where
-        domain in (select jsonb_array_elements_text(to_jsonb($1::text[])))
-        and type = 'NS'
+    with domain_list as (
+      select distinct domain, substring( domain from '^(?:[^/:]*:[^/@]*@)?(?:[^/:.]*\.)+([^:/]+)' ) as tld from net_dns_record where domain in (select jsonb_array_elements_text(to_jsonb($1::text[])))
     ),
-    ns_ips as (
-      select
-        *
-      from
-        net_dns_record
-      where
-        domain in (select target from domain_ns_records)
+    domain_parent_server as (
+      select l.domain, d.domain as tld, d.target as parent_server from net_dns_record as d inner join domain_list as l on d.domain = l.tld where d.type = 'SOA'
     ),
-    ns_with_type_a_record as (
-      select
-        domain_ns_records.domain,
-        ns_ips.type,
-        domain_ns_records.target,
-        ns_ips.ip
-      from
-        domain_ns_records
-        left join ns_ips on domain_ns_records.target = ns_ips.domain
-      where
-        ns_ips.type = 'A'
+    domain_parent_server_ip as (
+      select * from net_dns_record where domain in (select parent_server from domain_parent_server)
+    ),
+    domain_parent_server_with_ip as (
+      select domain_parent_server.domain, host(domain_parent_server_ip.ip) as ip_text from domain_parent_server inner join domain_parent_server_ip on domain_parent_server.parent_server = domain_parent_server_ip.domain where domain_parent_server_ip.type = 'A' order by domain_parent_server.domain
+    ),
+    domain_parent_server_ns_list as (
+      select net_dns_record.domain, string_agg(net_dns_record.target, ', ') as ns_records from net_dns_record inner join domain_parent_server_with_ip on net_dns_record.domain = domain_parent_server_with_ip.domain and net_dns_record.dns_server = domain_parent_server_with_ip.ip_text and net_dns_record.type = 'NS' group by net_dns_record.domain
     )
     select
-      dn.domain as resource,
+      domain as resource,
       case
-        when nsa.ip is null then 'alarm'
+        when (select ns_records from domain_parent_server_ns_list where domain = domain_list.domain) is not null then 'ok'
+        else 'alarm'
+      end as status,
+      case
+        when (select ns_records from domain_parent_server_ns_list where domain = domain_list.domain) is not null then domain || ' parent server has listed name servers.'
+        else domain || ' parent server don''t have information for name servers.'
+      end as reason
+    from
+      domain_list;
+  EOT
+
+  param "domain_name" {
+    description = "The website URL."
+    default     = var.domain_name
+  }
+}
+
+control "dns_ns_all_with_type_a_record" {
+  title       = "Every name server listed must have A records"
+  description = "It is highly recommended that every name server listed at parent should have A record."
+  severity    = "high"
+
+  sql = <<-EOT
+    with domain_list as (
+      select distinct domain, substring( domain from '^(?:[^/:]*:[^/@]*@)?(?:[^/:.]*\.)+([^:/]+)' ) as tld from net_dns_record where domain in (select jsonb_array_elements_text(to_jsonb($1::text[])))
+    ),
+    domain_parent_server as (
+      select l.domain, d.domain as tld, d.target as parent_server from net_dns_record as d inner join domain_list as l on d.domain = l.tld where d.type = 'SOA'
+    ),
+    domain_parent_server_ip as (
+      select * from net_dns_record where domain in (select parent_server from domain_parent_server)
+    ),
+    domain_parent_server_with_ip as (
+      select domain_parent_server.domain, host(domain_parent_server_ip.ip) as ip_text from domain_parent_server inner join domain_parent_server_ip on domain_parent_server.parent_server = domain_parent_server_ip.domain where domain_parent_server_ip.type = 'A' order by domain_parent_server.domain
+    ),
+    domain_parent_server_ns_list as (
+      select net_dns_record.domain, net_dns_record.target from net_dns_record inner join domain_parent_server_with_ip on net_dns_record.domain = domain_parent_server_with_ip.domain and net_dns_record.dns_server = domain_parent_server_with_ip.ip_text and net_dns_record.type = 'NS' order by net_dns_record.domain
+    ),
+    ns_ips as (
+      select domain, type, ip from net_dns_record where domain in (select target from domain_parent_server_ns_list) and type = 'A' order by domain
+    ),
+    ns_with_type_a_record as (
+      select domain_parent_server_ns_list.domain, ns_ips.type, domain_parent_server_ns_list.target, ns_ips.ip from domain_parent_server_ns_list left join ns_ips on domain_parent_server_ns_list.target = ns_ips.domain
+    )
+    select
+      domain as resource,
+      case
+        when (select target from ns_with_type_a_record where domain = domain_list.domain and type is null) is not null then 'alarm'
         else 'ok'
       end as status,
       case
-        when nsa.ip is null then dn.domain || ' Name Server ' || nsa.target || ' doesn''t have ''A'' record.'
-        else dn.domain || ' Name Server ' || nsa.target || ' has ''A'' record.'
+        when (select target from ns_with_type_a_record where domain = domain_list.domain and type is null) is not null then domain || ' has some name servers [' || (select string_agg(target, ', ') from ns_with_type_a_record where domain = domain_list.domain and type is null) || '] that do not have A records.'
+        else 'Every name servers listed at ' || domain || ' parent server has A records.'
       end as reason
     from
-      domain_ns_records as dn
-      left join ns_with_type_a_record as nsa on dn.target = nsa.target;
+      domain_list;
   EOT
 
   param "domain_name" {
@@ -210,7 +243,7 @@ control "dns_ns_at_least_two" {
 control "dns_ns_responded" {
   title       = "All name servers listed at the parent server should respond"
   description = "It is recommended that all name servers listed at parent server should respond individually and return same NS record as parent."
-  severity    = "low"
+  severity    = "high"
 
   sql = <<-EOT
     with domain_ns_records as (
@@ -779,7 +812,8 @@ benchmark "mx_checks" {
     control.dns_mx_all_ip_public,
     control.dns_mx_not_contain_ip,
     control.dns_mx_at_least_two,
-    control.dns_mx_no_duplicate_a_record
+    control.dns_mx_no_duplicate_a_record,
+    control.dns_mx_reverse_a_record
   ]
 }
 
@@ -977,6 +1011,80 @@ control "dns_mx_no_duplicate_a_record" {
     from
       mx_count_by_domain as d
       left join mx_with_public_ips_count as p on d.domain = p.domain;
+  EOT
+
+  param "domain_name" {
+    description = "The website URL."
+    default     = var.domain_name
+  }
+}
+
+control "dns_mx_reverse_a_record" {
+  title       = "DNS MX records should have reverse A record (PTR)"
+  description = "A PTR record is reverse version of an A record. In general A record maps a domain name to an IP address, but PTR record maps IP address to a hostname. It is recommended to use PTR record when using both internal or external mail servers. It allows the receiving end to check the hostname of your IP address."
+  severity    = "high"
+
+  sql = <<-EOT
+    with domain_list as (
+      select distinct domain from net_dns_record where domain in (select jsonb_array_elements_text(to_jsonb($1::text[])))
+    ),
+    domain_mx_records as (
+      select domain, target from net_dns_record where domain in (select domain from domain_list) and type = 'MX' order by domain
+    ),
+    mx_ips as (
+      select * from net_dns_record where domain in (select target from domain_mx_records) and type = 'A'
+    ),
+    mx_record_with_ip as (
+      select
+        domain_mx_records.domain,
+        domain_mx_records.target,
+        mx_ips.ip,
+        (mx_ips.ip << '10.0.0.0/8'::inet or mx_ips.ip << '100.64.0.0/10'::inet or mx_ips.ip << '172.16.0.0/12'::inet or mx_ips.ip << '192.0.0.0/24'::inet or mx_ips.ip << '192.168.0.0/16'::inet or mx_ips.ip << '198.18.0.0/15'::inet) as is_private
+      from
+        domain_mx_records
+        inner join mx_ips on domain_mx_records.target = mx_ips.domain
+    ),
+    mx_with_reverse_add as (
+      select
+        domain,
+        target,
+        (
+          select
+            concat(
+              array_to_string(array(
+                select nums[i] from generate_subscripts(nums, 1) as indices(i) order by i desc
+              ), '.'), '.in-addr.arpa'
+            ) as reversed
+          from (select string_to_array(host(ip), '.') as nums) as data
+        ) as reverse
+        from
+          mx_record_with_ip
+    ),
+    mx_with_ptr_record_stats as (
+      select
+        domain,
+        case
+          when (select count(*) from net_dns_record where domain = mx_with_reverse_add.reverse and type = 'PTR' group by domain) is not null then true
+          else false
+        end as has_ptr_record,
+        reverse as rev_add
+      from
+        mx_with_reverse_add
+    )
+    select
+      domain as resource,
+      case
+        when (select count(*) from mx_with_ptr_record_stats where domain = domain_list.domain and not has_ptr_record group by domain) is not null then 'alarm'
+        else 'ok'
+      end as status,
+      case
+        when (select count(*) from mx_with_ptr_record_stats where domain = domain_list.domain and not has_ptr_record group by domain) is not null
+          then domain || ' has MX records [' || (select string_agg(rev_add, ', ') from mx_with_ptr_record_stats where domain = domain_list.domain and not has_ptr_record)
+            || E'] \n with no reverse DNS (PTR) entries.'
+        else domain || ' has PTR records for all MX records.'
+      end as reason
+    from
+      domain_list;
   EOT
 
   param "domain_name" {

@@ -348,17 +348,51 @@ query "dns_parent_report" {
 
 query "dns_ns_report" {
   sql = <<-EOQ
-    with domain_ns_count as (
+    with domain_list as (
+      select distinct domain, substring( domain from '^(?:[^/:]*:[^/@]*@)?(?:[^/:.]*\.)+([^:/]+)' ) as tld from net_dns_record where domain = $1
+    ),
+    domain_parent_server as (
+      select l.domain, d.domain as tld, d.target as parent_server from net_dns_record as d inner join domain_list as l on d.domain = l.tld where d.type = 'SOA' order by l.domain
+    ),
+    domain_parent_server_ip as (
+      select * from net_dns_record where domain in (select parent_server from domain_parent_server) order by domain
+    ),
+    domain_parent_server_with_ip as (
+      select domain_parent_server.domain, host(domain_parent_server_ip.ip) as ip_text from domain_parent_server inner join domain_parent_server_ip on domain_parent_server.parent_server = domain_parent_server_ip.domain where domain_parent_server_ip.type = 'A' order by domain_parent_server.domain
+    ),
+    domain_parent_server_ns_list as (
+      select net_dns_record.domain, net_dns_record.target from net_dns_record inner join domain_parent_server_with_ip on net_dns_record.domain = domain_parent_server_with_ip.domain and net_dns_record.dns_server = domain_parent_server_with_ip.ip_text and net_dns_record.type = 'NS' order by net_dns_record.domain
+    ),
+    parent_server_ns_count_by_domain as (
+      select net_dns_record.domain, count(net_dns_record.target) from net_dns_record inner join domain_parent_server_with_ip on net_dns_record.domain = domain_parent_server_with_ip.domain and net_dns_record.dns_server = domain_parent_server_with_ip.ip_text and net_dns_record.type = 'NS' group by net_dns_record.domain order by net_dns_record.domain
+    ),
+    domain_ns_count as (
       select count(*) from net_dns_record where domain = $1 and type = 'NS' group by domain
     ),
     domain_ns_records as (
       select * from net_dns_record where domain in ($1) and type = 'NS'
     ),
     ns_ips as (
-      select * from net_dns_record where domain in (select target from domain_ns_records)
+      select domain, type, ip, host(ip) as ip_text from net_dns_record where domain in (select target from domain_ns_records) and type = 'A'
     ),
     ns_with_ip as (
       select domain_ns_records.domain, host(ns_ips.ip) as ip_text from domain_ns_records inner join ns_ips on domain_ns_records.target = ns_ips.domain where ns_ips.type = 'A' order by domain_ns_records.domain
+    ),
+    ns_with_name_server_record as (
+      select
+        domain_parent_server_ns_list.domain,
+        domain_parent_server_ns_list.target,
+        (select count as parent_server_ns_record_count from parent_server_ns_count_by_domain where domain = domain_parent_server_ns_list.domain),
+        (select count(*) as name_server_record_count from net_dns_record where domain = domain_parent_server_ns_list.domain and dns_server = ns_ips.ip_text and type = 'NS' group by domain)
+      from
+        domain_parent_server_ns_list
+        left join ns_ips on domain_parent_server_ns_list.target = ns_ips.domain
+      where
+        ns_ips.ip is not null
+      order by domain_parent_server_ns_list.domain
+    ),
+    ns_with_different_ns_count as (
+      select distinct domain from ns_with_name_server_record where parent_server_ns_record_count <> name_server_record_count
     ),
     ns_record_with_ip as (
       select
@@ -373,20 +407,6 @@ query "dns_ns_report" {
     ns_record_with_private_ip as (
       select distinct domain from ns_record_with_ip where is_private
     ),
-    ns_individual_count as (
-      select
-        d.domain,
-        count(*)
-      from
-        net_dns_record as d
-        inner join ns_with_ip as i on d.domain = i.domain and d.dns_server = i.ip_text
-      where
-        d.type = 'NS'
-      group by d.domain
-    ),
-    ns_count as (
-      select domain, count(*) from net_dns_record where domain in ($1) and type = 'NS' group by domain
-    ),
     invalid_ns_count as (
       select
         domain,
@@ -398,9 +418,6 @@ query "dns_ns_report" {
         and type = 'NS'
         and not target ~ '^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}\.?$'
       group by domain
-    ),
-    domain_list as (
-      select distinct domain from net_dns_record where domain in ($1)
     ),
     check_ips as (
       select
@@ -455,20 +472,17 @@ query "dns_ns_report" {
     select
       'Missing name servers reported by parent' as "Recommendation",
       case
-        when nic.count = pow(nc.count, 2) then '✅'
+        when ns_with_different_ns_count.domain is null then '✅'
         else '❌'
       end as "Status",
       case
-        when nic.count = pow(nc.count, 2) then 'NS records are the same at the parent and at your name servers.'
-        else 'At least 1 name server doesn''t return same records compared to parent record.'
+        when ns_with_different_ns_count.domain is null then 'NS records returned by parent server is same as the one reported by your name servers.'
+        else 'Name server records returned by parent server doesn''t match with your name servers [' || (select string_agg(target, ', ') from ns_with_name_server_record where parent_server_ns_record_count <> name_server_record_count) || '].'
       end
         || ' Unmatched NS records can cause delays when resolving domain records, as it tries to contact a name server that is either non-existent or non-authoritative.' as "Result"
     from
-      ns_count as nc,
-      ns_individual_count as nic
-    where
-      nc.domain = nic.domain
-    group by nc.domain, nic.count, nc.count
+      domain_list
+      left join ns_with_different_ns_count on domain_list.domain = ns_with_different_ns_count.domain
     UNION
     select
       'No CNAME record if an NS (or any other) record is present' as "Recommendation",

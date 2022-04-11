@@ -174,7 +174,7 @@ query "dns_parent_record" {
     domain_parent_server_with_ip as (
       select domain_parent_server.domain as "Domain", domain_parent_server.tld as "Top Level Domain (TLD)", domain_parent_server.parent_server as "Parent Server", domain_parent_server_ip.ip as "IP Address" from domain_parent_server inner join domain_parent_server_ip on domain_parent_server.parent_server = domain_parent_server_ip.domain where domain_parent_server_ip.type = 'A' order by domain_parent_server.domain
     )
-    select * from domain_parent_server_with_ip
+    select * from domain_parent_server_with_ip;
   EOQ
 
   param "domain_name_input" {}
@@ -227,13 +227,17 @@ query "dns_ns_record" {
       ns_ips.ip as "IP Address",
       domain_records.ttl as "TTL",
       case
+        when ns_ips.ip is null then 'Not Responding'
         when (select count(*) from net_dns_record where domain = $1 and dns_server = ns_ips.ip_text group by domain) is not null then 'Responding'
         else 'Not Responding'
-      end as "Status", 
-      (select count(*) from net_dns_record where domain = $1 and dns_server = ns_ips.ip_text and type = 'SOA' group by domain) is not null as "Authoritative"
+      end as "Status",
+      case
+        when ns_ips.ip is null then false
+        else (select count(*) from net_dns_record where domain = $1 and dns_server = ns_ips.ip_text and type = 'SOA' group by domain) is not null 
+      end as "Authoritative"
     from
       domain_records
-      left join ns_ips on domain_records.target = ns_ips.domain
+      left join ns_ips on domain_records.target = ns_ips.domain and ns_ips.type = 'A'
     where
       domain_records.type = 'NS'
     order by domain_records.target;
@@ -711,10 +715,9 @@ query "dns_mx_report" {
         domain,
         count(*)
       from
-        net_dns_record
+        domain_mx_records
       where
         domain = $1
-        and type = 'MX'
         and (select target ~ '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')
       group by domain
     ),
@@ -733,7 +736,7 @@ query "dns_mx_report" {
       select domain, count(*) from mx_count_public_ips where ip_usage_count > 1 group by domain
     ),
     mx_records as (
-      select domain, rtrim(target, '.') as target, rtrim(target, '.') ~ '^[^.].*[^-_.]$' as is_valid from net_dns_record where domain in (select domain from domain_list) and type = 'MX'
+      select domain, rtrim(target, '.') as target, rtrim(target, '.') ~ '^[^.].*[^-_.]$' as is_valid from domain_mx_records where domain = $1
     ),
     mx_with_reverse_add as (
       select
@@ -779,15 +782,19 @@ query "dns_mx_report" {
     select
       'Multiple MX records' as "Recommendation",
       case
-        when count(domain) < 2 then '❌'
+        when count(*) < 2 and (select count(*) from mx_record_with_ip where domain = $1) > 1 then '✅'
+        when count(*) < 2 then '❌'
         else '✅'
       end as "Status",
-      count(domain) || ' MX record(s) found. It is recommended to use at least 2 MX records so that backup server can receive mail when one server goes down.' as "Result"
+      case
+        when count(*) < 2 and (select count(*) from mx_record_with_ip where domain = $1) > 1 then count(*) || ' MX record(s) found but that MX record has multiple IPs.'
+        else count(*) || ' MX record(s) found.'
+      end 
+        || ' It is recommended to use at least 2 MX records so that backup server can receive mail when one server goes down.' as "Result"
     from
-      net_dns_record
+      domain_mx_records
     where
       domain = $1
-      and type = 'MX'
     UNION
     select
       'MX IPs are public' as "Recommendation",

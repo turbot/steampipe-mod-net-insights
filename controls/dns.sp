@@ -37,7 +37,7 @@ benchmark "parent_checks" {
 
 control "dns_record_found" {
   title       = "DNS record must be present"
-  description = "The record must be present for a domain."
+  description = "Domain Name System (DNS) is used to point any domain toward the IP address of the server. When you search for a domain, the DNS records searches for the IP address of the server and server the website. It is required to have valid records for your domain, so that it can be found when anyone searching for your domain."
   severity    = "low"
 
   sql = <<-EOT
@@ -107,7 +107,7 @@ control "dns_ns_listed_at_parent" {
 
 control "dns_ns_all_with_type_a_record" {
   title       = "Every name server listed must have A records"
-  description = "It is highly recommended that every name server listed at parent should have A record."
+  description = "The 'A' record is the most fundamental type of DNS record which indicates the IP address of a domain. An A record maps a domain to the physical IP address of the computer hosting that domain. Internet traffic uses the A record to find the computer hosting your domain's DNS settings. It is highly recommended that every name server listed at parent should have A record."
   severity    = "high"
 
   sql = <<-EOT

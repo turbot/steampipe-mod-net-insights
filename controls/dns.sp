@@ -161,6 +161,7 @@ benchmark "ns_checks" {
   children = [
     control.dns_ns_name_valid,
     control.dns_ns_at_least_two,
+    control.dns_ns_authoritative,
     control.dns_ns_responded,
     control.dns_local_ns_matches_parent_ns_list,
     control.dns_no_cname_with_other_record,
@@ -234,6 +235,60 @@ control "dns_ns_at_least_two" {
     group by
       domain,
       type;
+  EOT
+
+  param "domain_name" {
+    description = "The website URL."
+    default     = var.domain_name
+  }
+}
+
+control "dns_ns_authoritative" {
+  title       = "DNS name servers should answer authoritatively"
+  description = "It is recommended that all the name servers should replied back authoritatively. If the name servers not respond with authority, it is possible that some services will fail if they are configured to only work with authoritative DNS."
+  severity    = "low"
+
+  sql = <<-EOT
+    with domain_list as (
+      select distinct domain from net_dns_record where domain in (select jsonb_array_elements_text(to_jsonb($1::text[]))) order by domain
+    ),
+    domain_ns_records as (
+      select * from net_dns_record where domain in (select domain from domain_list order by domain) and type = 'NS' order by domain
+    ),
+    ns_ips as (
+      select domain, ip, type, target, host(ip) as ip_text from net_dns_record where domain in (select target from domain_ns_records) and type = 'A' order by domain
+    ),
+    ns_with_authoritative_stats as (
+      select
+      domain_ns_records.domain,
+      domain_ns_records.target,
+      case
+        when ns_ips.ip is null then false
+        else (select count(*) from net_dns_record where domain = domain_ns_records.domain and dns_server = ns_ips.ip_text and type = 'SOA' group by domain) is not null 
+      end as is_authoritative
+    from
+      domain_ns_records
+      left join ns_ips on domain_ns_records.target = ns_ips.domain and ns_ips.type = 'A' and ns_ips.ip is not null
+    where
+      domain_ns_records.type = 'NS'
+    order by domain_ns_records.target
+    ),
+    ns_non_authoritative as (
+      select distinct domain from ns_with_authoritative_stats where not is_authoritative order by domain
+    )
+    select
+      domain_list.domain as resource,
+      case
+        when ns_non_authoritative.domain is null then 'ok'
+        else 'alarm'
+      end as status,
+      case
+        when ns_non_authoritative.domain is null then domain_list.domain || ' name servers listed at parent server are answer authoritatively.'
+        else domain_list.domain || ' name servers [' || (select string_agg(target, ', ') from ns_with_authoritative_stats where domain = domain_list.domain and not is_authoritative) || '] are not answering authoritatively.'
+      end as reason
+    from
+      domain_list
+      left join ns_non_authoritative on domain_list.domain = ns_non_authoritative.domain;
   EOT
 
   param "domain_name" {

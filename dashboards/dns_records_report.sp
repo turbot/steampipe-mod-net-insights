@@ -500,9 +500,7 @@ query "dns_ns_report" {
         when cname_record_count > 0 and all_record_count = cname_record_count then 'CNAME record(s) [' || (select string_agg(target, ', ') from net_dns_record where domain = count_stats.domain) || '].'
         else domain || ' has CNAME record along with NS (or any other) record.'
       end
-        || ' A CNAME record is not allowed to coexist with any other data. This is often attempted by inexperienced administrators as an obvious way to
-          allow your domain name to also be a host. However, DNS servers like BIND will see the CNAME and refuse to add any other resources for that name.
-          Since no other records are allowed to coexist with a CNAME, the NS entries are ignored.' as "Result"
+        || ' A CNAME record is not allowed to coexist with any other data. This is often attempted by inexperienced administrators as an obvious way to allow your domain name to also be a host. However, DNS servers like BIND will see the CNAME and refuse to add any other resources for that name. Since no other records are allowed to coexist with a CNAME, the NS entries are ignored.' as "Result"
     from
       count_stats
     UNION
@@ -516,8 +514,7 @@ query "dns_ns_report" {
         when count(*) = 1 then 'Name servers are on the same subnet.'
         else 'Name servers appear to be dispersed.'
       end
-        || ' As per RFC2182 section 3.1, it is recommended that the secondary servers must be placed at both topologically and
-          geographically dispersed locations on the Internet, to minimize the likelihood of a single failure disabling all of them.' as "Result"
+        || ' As per RFC2182 section 3.1, it is recommended that the secondary servers must be placed at both topologically and geographically dispersed locations on the Internet, to minimize the likelihood of a single failure disabling all of them.' as "Result"
     from
       check_ips
     group by domain
@@ -547,8 +544,7 @@ query "dns_ns_report" {
         when count(*) = 1 then 'Name servers are in same location.'
         else 'Name servers are located in different location.'
       end
-        || ' As per RFC2182 section 3.1, it is recommended that the secondary servers must be placed at both topologically and
-          geographically dispersed locations on the Internet, to minimize the likelihood of a single failure disabling all of them.' as "Result"
+        || ' As per RFC2182 section 3.1, it is recommended that the secondary servers must be placed at both topologically and geographically dispersed locations on the Internet, to minimize the likelihood of a single failure disabling all of them.' as "Result"
     from
       check_ips
     group by domain

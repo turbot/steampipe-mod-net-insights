@@ -19,7 +19,8 @@ benchmark "dns_checks" {
     benchmark.parent_checks,
     benchmark.ns_checks,
     benchmark.soa_checks,
-    benchmark.mx_checks
+    benchmark.mx_checks,
+    benchmark.www_checks
   ]
 }
 
@@ -163,6 +164,7 @@ benchmark "ns_checks" {
     control.dns_ns_responded,
     control.dns_local_ns_matches_parent_ns_list,
     control.dns_no_cname_with_other_record,
+    control.dns_ns_no_cname_with_other_record,
     control.dns_ns_on_different_subnets,
     control.dns_ns_all_ip_public,
     control.dns_ns_different_autonomous_systems
@@ -394,6 +396,68 @@ control "dns_no_cname_with_other_record" {
       end as reason
     from
       count_stats;
+  EOT
+
+  param "domain_name" {
+    description = "The website URL."
+    default     = var.domain_name
+  }
+}
+
+control "dns_ns_no_cname_with_other_record" {
+  title       = "DNS name servers should not contain CNAME record if an NS (or any other) record is present"
+  description = "A CNAME record is not allowed to coexist with any other data. This is often attempted by inexperienced administrators as an obvious way to allow your domain name to also be a host. However, DNS servers like BIND will see the CNAME and refuse to add any other resources for that name. Since no other records are allowed to coexist with a CNAME, the NS entries are ignored."
+  severity    = "low"
+
+  sql = <<-EOT
+    with domain_list as (
+      select distinct domain from net_dns_record where domain in (select jsonb_array_elements_text(to_jsonb($1::text[]))) order by domain
+    ),
+    domain_ns_records as (
+      select * from net_dns_record where domain in (select * from domain_list) and type = 'NS' order by domain
+    ),
+    ns_ips as (
+      select domain, ip, type, target, host(ip) as ip_text from net_dns_record where domain in (select target from domain_ns_records) and type = 'A' order by domain
+    ),
+    ns_record_with_ip as (
+      select
+        domain_ns_records.domain,
+        domain_ns_records.target as name_server,
+        ns_ips.ip,
+        host(ns_ips.ip) as ip_text
+      from
+        domain_ns_records
+        left join ns_ips on domain_ns_records.target = ns_ips.domain
+      where
+        domain_ns_records.type = 'NS'
+        and ns_ips.ip is not null
+      order by domain_ns_records.target
+    ),
+    ns_record_with_record_count_stats as (
+      select
+        domain,
+        name_server,
+        (select count(*) from net_dns_record where domain = ns_record_with_ip.domain and dns_server = ns_record_with_ip.ip_text and type = 'CNAME') as cname_record_count,
+        (select count(*) from net_dns_record where domain = ns_record_with_ip.domain and dns_server = ns_record_with_ip.ip_text and type not in ('CNAME')) as non_cname_record_count
+      from
+        ns_record_with_ip
+    ),
+    ns_record_with_cname_other as (
+      select distinct domain from ns_record_with_record_count_stats where cname_record_count > 0 and non_cname_record_count > 0 order by domain
+    )
+    select
+      domain_list.domain as resource,
+      case
+        when ns_record_with_cname_other is null then 'ok'
+        else 'alarm'
+      end as status,
+      case
+        when ns_record_with_cname_other is null then domain_list.domain || ' has no CNAME record along with NS (or any other) record.'
+        else domain_list.domain || ' has CNAME record along with NS (or any other) record.'
+      end as reason
+    from
+      domain_list
+      left join ns_record_with_cname_other on domain_list.domain = ns_record_with_cname_other.domain;
   EOT
 
   param "domain_name" {
@@ -821,6 +885,7 @@ benchmark "mx_checks" {
   children = [
     control.dns_mx_valid_hostname,
     control.dns_mx_all_ip_public,
+    control.dns_mx_no_cname_with_other_record,
     control.dns_mx_not_contain_ip,
     control.dns_mx_at_least_two,
     control.dns_mx_no_duplicate_a_record,
@@ -901,6 +966,68 @@ control "dns_mx_all_ip_public" {
     from
       domain_list
       left join mx_record_with_private_ip on domain_list.domain = mx_record_with_private_ip.domain;
+  EOT
+
+  param "domain_name" {
+    description = "The website URL."
+    default     = var.domain_name
+  }
+}
+
+control "dns_mx_no_cname_with_other_record" {
+  title       = "DNS MX records should not contain CNAME record if an NS (or any other) record is present"
+  description = "A CNAME record is not allowed to coexist with any other data. This is often attempted by inexperienced administrators as an obvious way to allow your domain name to also be a host. However, DNS servers like BIND will see the CNAME and refuse to add any other resources for that name. Since no other records are allowed to coexist with a CNAME, the NS entries are ignored."
+  severity    = "low"
+
+  sql = <<-EOT
+    with domain_list as (
+      select distinct domain from net_dns_record where domain in (select jsonb_array_elements_text(to_jsonb($1::text[]))) order by domain
+    ),
+    domain_mx_records as (
+      select * from net_dns_record where domain in (select * from domain_list) and type = 'MX' order by domain
+    ),
+    mx_ips as (
+      select domain, ip, type, target, host(ip) as ip_text from net_dns_record where domain in (select target from domain_mx_records) and type = 'A' order by domain
+    ),
+    mx_record_with_ip as (
+      select
+        domain_mx_records.domain,
+        domain_mx_records.target as name_server,
+        mx_ips.ip,
+        host(mx_ips.ip) as ip_text
+      from
+        domain_mx_records
+        left join mx_ips on domain_mx_records.target = mx_ips.domain
+      where
+        domain_mx_records.type = 'MX'
+        and mx_ips.ip is not null
+      order by domain_mx_records.target
+    ),
+    mx_record_with_record_count_stats as (
+      select
+        domain,
+        name_server,
+        (select count(*) from net_dns_record where domain = mx_record_with_ip.domain and dns_server = mx_record_with_ip.ip_text and type = 'CNAME') as cname_record_count,
+        (select count(*) from net_dns_record where domain = mx_record_with_ip.domain and dns_server = mx_record_with_ip.ip_text and type not in ('CNAME')) as non_cname_record_count
+      from
+        mx_record_with_ip
+    ),
+    mx_record_with_cname_other as (
+      select distinct domain from mx_record_with_record_count_stats where cname_record_count > 0 and non_cname_record_count > 0 order by domain
+    )
+    select
+      domain_list.domain as resource,
+      case
+        when mx_record_with_cname_other is null then 'ok'
+        else 'alarm'
+      end as status,
+      case
+        when mx_record_with_cname_other is null then domain_list.domain || ' has no CNAME record along with other record.'
+        else domain_list.domain || ' has CNAME record along with other record.'
+      end as reason
+    from
+      domain_list
+      left join mx_record_with_cname_other on domain_list.domain = mx_record_with_cname_other.domain;
   EOT
 
   param "domain_name" {
@@ -1096,6 +1223,74 @@ control "dns_mx_reverse_a_record" {
       end as reason
     from
       domain_list;
+  EOT
+
+  param "domain_name" {
+    description = "The website URL."
+    default     = var.domain_name
+  }
+}
+
+# TODO: Update documentation and descriptions
+
+benchmark "www_checks" {
+  title         = "WWW"
+  description   = "WWW"
+  #documentation = file("./controls/docs/dns_mx_overview.md")
+  tags          = local.dns_check_common_tags
+  children = [
+    control.dns_www_all_ip_public
+  ]
+}
+
+control "dns_www_all_ip_public" {
+  title       = "DNS WWW IPs should use public IPs"
+  description = "For a server to be accessible on the public internet, it needs a public DNS record, and its IP address needs to be reachable on the internet."
+  severity    = "low"
+
+  sql = <<-EOT
+    with domains_with_www as (
+      select distinct fqdn, domain from (
+        select
+          domain,
+          case
+            when domain ilike 'www.%' then domain
+            else 'www.' || domain
+          end as fqdn
+        from
+          net_dns_record
+        where domain in (select jsonb_array_elements_text(to_jsonb($1::text[])))
+      ) as domains
+      order by fqdn
+    ),
+    domain_with_www_record as (
+      select
+        domain,
+        ip,
+        (ip << '10.0.0.0/8'::inet or ip << '100.64.0.0/10'::inet or ip << '172.16.0.0/12'::inet or ip << '192.0.0.0/24'::inet or ip << '192.168.0.0/16'::inet or ip << '198.18.0.0/15'::inet) as is_private
+      from
+        net_dns_record
+      where
+        domain in (select fqdn from domains_with_www)
+        and type = 'A'
+        and ip is not null
+    ),
+    domain_with_www_with_private_ip as (
+      select distinct domain from domain_with_www_record where is_private
+    )
+    select
+      domains_with_www.domain as resource,
+      case
+        when domain_with_www_with_private_ip.domain is null then 'ok'
+        else 'alarm'
+      end as status,
+      case
+        when domain_with_www_with_private_ip.domain is null then 'All WWW IPs in ' || domains_with_www.domain || ' appear to use public IPs.'
+        else domains_with_www.domain || ' has WWW records using private IPs [' || (select host(ip) from domain_with_www_record where domain = domains_with_www.domain and is_private) || '].'
+      end as reason
+    from
+      domains_with_www
+      left join domain_with_www_with_private_ip on domains_with_www.domain = domain_with_www_with_private_ip.domain;
   EOT
 
   param "domain_name" {

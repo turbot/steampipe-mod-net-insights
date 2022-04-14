@@ -27,7 +27,7 @@ benchmark "dns_checks" {
 benchmark "dns_parent_checks" {
   title         = "DNS Parent Checks"
   description   = "DNS Parent checks."
-  documentation = file("./controls/docs/dns_parent_overview.md")
+  documentation = file("./controls/docs/dns_parent.md")
   tags          = local.dns_check_common_tags
   children = [
     control.dns_parent_record_found,
@@ -153,7 +153,7 @@ control "dns_parent_ns_all_with_type_a_record" {
 benchmark "dns_ns_checks" {
   title         = "DNS Name Server (NS) Checks"
   description   = "DNS NS checks."
-  documentation = file("./controls/docs/dns_ns_overview.md")
+  documentation = file("./controls/docs/dns_ns.md")
   tags          = local.dns_check_common_tags
   children = [
     control.dns_ns_name_valid,
@@ -668,7 +668,7 @@ control "dns_ns_different_autonomous_systems" {
 benchmark "dns_soa_checks" {
   title         = "DNS Start of Authority (SOA) Checks"
   description   = "DNS SOA checks."
-  documentation = file("./controls/docs/dns_soa_overview.md")
+  documentation = file("./controls/docs/dns_soa.md")
   #tags          = local.dns_check_common_tags
   children = [
     control.dns_soa_ns_same_serial,
@@ -915,7 +915,7 @@ control "dns_soa_min_ttl_value_check" {
 benchmark "dns_mx_checks" {
   title         = "DNS Mail Exchange (MX) Checks"
   description   = "DNS MX checks."
-  documentation = file("./controls/docs/dns_mx_overview.md")
+  documentation = file("./controls/docs/dns_mx.md")
   tags          = local.dns_check_common_tags
   children = [
     control.dns_mx_valid_hostname,
@@ -1264,7 +1264,7 @@ control "dns_mx_reverse_a_record" {
 benchmark "dns_www_checks" {
   title         = "DNS WWW Checks"
   description   = "DNS WWW checks."
-  #documentation = file("./controls/docs/dns_mx_overview.md")
+  #documentation = file("./controls/docs/dns_mx.md")
   tags          = local.dns_check_common_tags
   children = [
     control.dns_www_all_ip_public

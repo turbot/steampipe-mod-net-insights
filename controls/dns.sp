@@ -11,8 +11,8 @@ locals {
 }
 
 benchmark "dns_checks" {
-  title         = "DNS Checks"
-  description   = "DNS checks."
+  title         = "DNS Best Practices"
+  description   = "DNS best practices."
   documentation = file("./controls/docs/dns_overview.md")
   tags          = local.dns_check_common_tags
   children = [
@@ -25,8 +25,8 @@ benchmark "dns_checks" {
 }
 
 benchmark "dns_parent_checks" {
-  title         = "DNS Parent Checks"
-  description   = "DNS Parent checks."
+  title         = "DNS Parent Records"
+  description   = "DNS Parent record checks."
   documentation = file("./controls/docs/dns_parent.md")
   tags          = local.dns_check_common_tags
   children = [
@@ -151,8 +151,8 @@ control "dns_parent_ns_all_with_type_a_record" {
 }
 
 benchmark "dns_ns_checks" {
-  title         = "DNS Name Server (NS) Checks"
-  description   = "DNS NS checks."
+  title         = "DNS Name Server (NS) Records"
+  description   = "DNS NS record checks."
   documentation = file("./controls/docs/dns_ns.md")
   tags          = local.dns_check_common_tags
   children = [
@@ -666,8 +666,8 @@ control "dns_ns_different_autonomous_systems" {
 }
 
 benchmark "dns_soa_checks" {
-  title         = "DNS Start of Authority (SOA) Checks"
-  description   = "DNS SOA checks."
+  title         = "DNS Start of Authority (SOA) Records"
+  description   = "DNS SOA record checks."
   documentation = file("./controls/docs/dns_soa.md")
   #tags          = local.dns_check_common_tags
   children = [
@@ -913,8 +913,8 @@ control "dns_soa_min_ttl_value_check" {
 }
 
 benchmark "dns_mx_checks" {
-  title         = "DNS Mail Exchange (MX) Checks"
-  description   = "DNS MX checks."
+  title         = "DNS Mail Exchange (MX) Records"
+  description   = "DNS MX record checks."
   documentation = file("./controls/docs/dns_mx.md")
   tags          = local.dns_check_common_tags
   children = [
@@ -1262,8 +1262,8 @@ control "dns_mx_reverse_a_record" {
 # TODO: Update documentation and descriptions
 
 benchmark "dns_www_checks" {
-  title         = "DNS WWW Checks"
-  description   = "DNS WWW checks."
+  title         = "DNS WWW Records"
+  description   = "DNS WWW record checks."
   #documentation = file("./controls/docs/dns_mx.md")
   tags          = local.dns_check_common_tags
   children = [

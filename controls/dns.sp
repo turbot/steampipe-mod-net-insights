@@ -25,8 +25,8 @@ benchmark "dns_checks" {
 }
 
 benchmark "dns_parent_checks" {
-  title         = "Parent"
-  description   = "Parent checks."
+  title         = "DNS Parent Checks"
+  description   = "DNS Parent checks."
   documentation = file("./controls/docs/dns_parent_overview.md")
   tags          = local.dns_check_common_tags
   children = [
@@ -39,7 +39,6 @@ benchmark "dns_parent_checks" {
 control "dns_parent_record_found" {
   title       = "DNS record must be present"
   description = "Domain Name System (DNS) is used to point any domain toward the IP address of the server. When you search for a domain, the DNS records searches for the IP address of the server and server the website. It is required to have valid records for your domain, so that it can be found when anyone searching for your domain."
-  severity    = "low"
 
   sql = <<-EOT
     select
@@ -60,15 +59,14 @@ control "dns_parent_record_found" {
   EOT
 
   param "dns_domain_names" {
-    description = "The website URL."
+    description = "DNS domain names."
     default     = var.dns_domain_names
   }
 }
 
 control "dns_parent_ns_listed_at_parent" {
   title       = "DNS parent server should have name server information"
-  description = "It is highly recommended that the parent server should have information for all your name server, so that if anyone want your domain information and does not know DNS server can ask parent server for information."
-  severity    = "high"
+  description = "It is highly recommended that the parent server should have information for all your name servers, so if anyone wants your domain information and does not know the DNS server, they can ask parent server for information."
 
   sql = <<-EOT
     with domain_list as (
@@ -101,15 +99,14 @@ control "dns_parent_ns_listed_at_parent" {
   EOT
 
   param "dns_domain_names" {
-    description = "The website URL."
+    description = "DNS domain names."
     default     = var.dns_domain_names
   }
 }
 
 control "dns_parent_ns_all_with_type_a_record" {
   title       = "Every name server listed must have A records"
-  description = "The 'A' record is the most fundamental type of DNS record which indicates the IP address of a domain. An A record maps a domain to the physical IP address of the computer hosting that domain. Internet traffic uses the A record to find the computer hosting your domain's DNS settings. It is highly recommended that every name server listed at parent should have A record."
-  severity    = "high"
+  description = "The 'A' record is the most fundamental type of DNS record which indicates the IP address of a domain. An 'A' record maps a domain to the physical IP address of the computer hosting that domain. Internet traffic uses the A record to find the computer hosting your domain's DNS settings. It is highly recommended that every name server listed at the parent should have an 'A' record."
 
   sql = <<-EOT
     with domain_list as (
@@ -148,14 +145,14 @@ control "dns_parent_ns_all_with_type_a_record" {
   EOT
 
   param "dns_domain_names" {
-    description = "The website URL."
+    description = "DNS domain names."
     default     = var.dns_domain_names
   }
 }
 
 benchmark "dns_ns_checks" {
-  title         = "Name Server (NS)"
-  description   = "NS checks."
+  title         = "DNS Name Server (NS) Checks"
+  description   = "DNS NS checks."
   documentation = file("./controls/docs/dns_ns_overview.md")
   tags          = local.dns_check_common_tags
   children = [
@@ -164,7 +161,7 @@ benchmark "dns_ns_checks" {
     control.dns_ns_authoritative,
     control.dns_ns_responded,
     control.dns_ns_local_matches_parent_ns_list,
-    control.dns_dns_no_cname_with_other_record,
+    control.dns_ns_dns_no_cname_with_other_record,
     control.dns_ns_no_cname_with_other_record,
     control.dns_ns_on_different_subnets,
     control.dns_ns_all_ip_public,
@@ -175,7 +172,6 @@ benchmark "dns_ns_checks" {
 control "dns_ns_name_valid" {
   title       = "DNS name servers should have valid name"
   description = "It is recommended that all name servers should have a valid name format. DNS names can contain only alphabetical characters (A-Z), numeric characters (0-9), the minus sign (-), and the period (.). Period characters are allowed only when they are used to delimit the components of domain style names."
-  severity    = "low"
 
   sql = <<-EOT
     with invalid_ns_count as (
@@ -209,15 +205,14 @@ control "dns_ns_name_valid" {
   EOT
 
   param "dns_domain_names" {
-    description = "The website URL."
+    description = "DNS domain names."
     default     = var.dns_domain_names
   }
 }
 
 control "dns_ns_at_least_two" {
   title       = "DNS should have at least 2 name servers"
-  description = "Only having 1 name server leaves you vulnerable to that name server failing and taking down your website. It is recommended to have at least 2 name servers for your domain to provide failover capability/backup in the event one name server fails."
-  severity    = "low"
+  description = "Only having 1 name server leaves you vulnerable to that name server failing and taking down your website. It is recommended to have at least 2 name servers for your domain to provide failover capability in the event one name server fails."
 
   sql = <<-EOT
     select
@@ -238,7 +233,7 @@ control "dns_ns_at_least_two" {
   EOT
 
   param "dns_domain_names" {
-    description = "The website URL."
+    description = "DNS domain names."
     default     = var.dns_domain_names
   }
 }
@@ -246,7 +241,6 @@ control "dns_ns_at_least_two" {
 control "dns_ns_authoritative" {
   title       = "DNS name servers should answer authoritatively"
   description = "It is recommended that all the name servers should reply back authoritatively. If the name servers do not respond with authority, it is possible that some services will fail if they are configured to only work with authoritative DNS."
-  severity    = "low"
 
   sql = <<-EOT
     with domain_list as (
@@ -292,15 +286,14 @@ control "dns_ns_authoritative" {
   EOT
 
   param "dns_domain_names" {
-    description = "The website URL."
+    description = "DNS domain names."
     default     = var.dns_domain_names
   }
 }
 
 control "dns_ns_responded" {
   title       = "All name servers listed at the parent server should respond"
-  description = "It is recommended that all name servers listed at parent server should respond individually and return same NS record as parent."
-  severity    = "high"
+  description = "It is recommended that all name servers listed at parent server should respond individually and return the same NS record as the parent."
 
   sql = <<-EOT
     with domain_ns_records as (
@@ -345,15 +338,14 @@ control "dns_ns_responded" {
   EOT
 
   param "dns_domain_names" {
-    description = "The website URL."
+    description = "DNS domain names."
     default     = var.dns_domain_names
   }
 }
 
 control "dns_ns_local_matches_parent_ns_list" {
   title       = "Local DNS name server list should match parent name server list"
-  description = "It is recommended that the local NS list should list the same number of NS as parent NS."
-  severity    = "low"
+  description = "It is recommended that the local NS list should match the parent NS list."
 
   sql = <<-EOT
     with domain_list as (
@@ -409,15 +401,14 @@ control "dns_ns_local_matches_parent_ns_list" {
   EOT
 
   param "dns_domain_names" {
-    description = "The website URL."
+    description = "DNS domain names."
     default     = var.dns_domain_names
   }
 }
 
-control "dns_dns_no_cname_with_other_record" {
+control "dns_ns_dns_no_cname_with_other_record" {
   title       = "DNS record should not contain CNAME record if an NS (or any other) record is present"
   description = "A CNAME record is not allowed to coexist with any other data. This is often attempted by inexperienced administrators as an obvious way to allow your domain name to also be a host. However, DNS servers like BIND will see the CNAME and refuse to add any other resources for that name. Since no other records are allowed to coexist with a CNAME, the NS entries are ignored."
-  severity    = "low"
 
   sql = <<-EOT
     with domain_list as (
@@ -454,7 +445,7 @@ control "dns_dns_no_cname_with_other_record" {
   EOT
 
   param "dns_domain_names" {
-    description = "The website URL."
+    description = "DNS domain names."
     default     = var.dns_domain_names
   }
 }
@@ -462,7 +453,6 @@ control "dns_dns_no_cname_with_other_record" {
 control "dns_ns_no_cname_with_other_record" {
   title       = "DNS name servers should not contain CNAME record if an NS (or any other) record is present"
   description = "A CNAME record is not allowed to coexist with any other data. This is often attempted by inexperienced administrators as an obvious way to allow your domain name to also be a host. However, DNS servers like BIND will see the CNAME and refuse to add any other resources for that name. Since no other records are allowed to coexist with a CNAME, the NS entries are ignored."
-  severity    = "low"
 
   sql = <<-EOT
     with domain_list as (
@@ -516,7 +506,7 @@ control "dns_ns_no_cname_with_other_record" {
   EOT
 
   param "dns_domain_names" {
-    description = "The website URL."
+    description = "DNS domain names."
     default     = var.dns_domain_names
   }
 }
@@ -524,7 +514,6 @@ control "dns_ns_no_cname_with_other_record" {
 control "dns_ns_on_different_subnets" {
   title       = "DNS name servers should be on different subnets"
   description = "Having more than 1 name server in the same class C subnet is not recommended, as this increases the likelihood of a single failure disabling all of your name servers."
-  severity    = "low"
 
   sql = <<-EOT
     with domain_records as (
@@ -570,7 +559,7 @@ control "dns_ns_on_different_subnets" {
   EOT
 
   param "dns_domain_names" {
-    description = "The website URL."
+    description = "DNS domain names."
     default     = var.dns_domain_names
   }
 }
@@ -578,7 +567,6 @@ control "dns_ns_on_different_subnets" {
 control "dns_ns_all_ip_public" {
   title       = "DNS NS records should use public IPs"
   description = "For a server to be accessible on the public internet, it needs a public DNS record, and its IP address needs to be reachable on the internet."
-  severity    = "low"
 
   sql = <<-EOT
     with domain_list as (
@@ -619,7 +607,7 @@ control "dns_ns_all_ip_public" {
   EOT
 
   param "dns_domain_names" {
-    description = "The website URL."
+    description = "DNS domain names."
     default     = var.dns_domain_names
   }
 }
@@ -627,7 +615,6 @@ control "dns_ns_all_ip_public" {
 control "dns_ns_different_autonomous_systems" {
   title       = "DNS name servers should locate in different locations"
   description = "Having more than 1 name server located in the same location is not recommended, as this increases the likelihood of a single failure disabling all of your name servers."
-  severity    = "low"
 
   sql = <<-EOT
     with domain_records as (
@@ -673,14 +660,14 @@ control "dns_ns_different_autonomous_systems" {
   EOT
 
   param "dns_domain_names" {
-    description = "The website URL."
+    description = "DNS domain names."
     default     = var.dns_domain_names
   }
 }
 
 benchmark "dns_soa_checks" {
-  title         = "Start of Authority (SOA)"
-  description   = "SOA checks."
+  title         = "DNS Start of Authority (SOA) checks"
+  description   = "DNS SOA checks."
   documentation = file("./controls/docs/dns_soa_overview.md")
   #tags          = local.dns_check_common_tags
   children = [
@@ -696,8 +683,7 @@ benchmark "dns_soa_checks" {
 
 control "dns_soa_ns_same_serial" {
   title       = "All DNS NS records should have same SOA serial"
-  description = "Sometimes serial numbers become out of sync when any record within a zone got updated and the changes are transferred from primary name server to other name servers. If the SOA serial number is not same for all NS record there might be a problem with the transfer."
-  severity    = "low"
+  description = "Sometimes serial numbers become out of sync when any record within a zone got updated and the changes are transferred from primary name server to other name servers. If the SOA serial number is not same for all NS records there might be a problem with the transfer."
 
   sql = <<-EOT
     with domain_ns_records as (
@@ -746,15 +732,14 @@ control "dns_soa_ns_same_serial" {
   EOT
 
   param "dns_domain_names" {
-    description = "The website URL."
+    description = "DNS domain names."
     default     = var.dns_domain_names
   }
 }
 
 control "dns_soa_primary_ns_listed_at_parent" {
   title       = "DNS primary name server should be listed at parent"
-  description = "The Primary Name Server is the name server declared in your SOA file and is usually the name server that reads your records from zone files and is responsible for distributing that data to your secondary name servers. This problem is present when this primary name server is not included in the parent referrals and is almost always accompanied by a Local Parent Mismatch problem."
-  severity    = "low"
+  description = "The primary name server is the name server declared in your SOA file and is usually the name server that reads your records from zone files and is responsible for distributing that data to your secondary name servers. This problem is present when this primary name server is not included in the parent referrals and is almost always accompanied by a Local Parent Mismatch problem."
 
   sql = <<-EOT
     with primary_ns_from_soa_record as (
@@ -794,7 +779,7 @@ control "dns_soa_primary_ns_listed_at_parent" {
   EOT
 
   param "dns_domain_names" {
-    description = "The website URL."
+    description = "DNS domain names."
     default     = var.dns_domain_names
   }
 }
@@ -802,7 +787,6 @@ control "dns_soa_primary_ns_listed_at_parent" {
 control "dns_soa_serial_check" {
   title       = "DNS SOA serial number should be between 1 and 4294967295"
   description = "SOA serial number is used as a version number for your DNS zone. For all name servers to be up to date with the current version of your zone, they must have the same SOA serial number. It is recommended that the format should be in YYYYMMDDnn format (per RFC1912 2.2)."
-  severity    = "low"
 
   sql = <<-EOT
     select
@@ -823,7 +807,7 @@ control "dns_soa_serial_check" {
   EOT
 
   param "dns_domain_names" {
-    description = "The website URL."
+    description = "DNS domain names."
     default     = var.dns_domain_names
   }
 }
@@ -831,7 +815,6 @@ control "dns_soa_serial_check" {
 control "dns_soa_refresh_value_check" {
   title       = "DNS SOA refresh value should be between 1200 and 43200 seconds (12 minutes to 12 hours)"
   description = "Number of seconds after which secondary name servers should query the master for the SOA record, to detect zone changes. It is recommended that the value should be between 20 minutes to 12 hours."
-  severity    = "low"
 
   sql = <<-EOT
     select
@@ -849,15 +832,14 @@ control "dns_soa_refresh_value_check" {
   EOT
 
   param "dns_domain_names" {
-    description = "The website URL."
+    description = "DNS domain names."
     default     = var.dns_domain_names
   }
 }
 
 control "dns_soa_retry_value_check" {
   title       = "DNS SOA retry value should be between 120 and 7200 seconds (2 minutes to 2 hours)"
-  description = "Number of seconds after which secondary name servers should retry to request the serial number from the master if the master does not respond. It must be less than Refresh. It is recommended that the value should be between 2 minutes to 2 hours."
-  severity    = "low"
+  description = "Number of seconds after which secondary name servers should retry to request the serial number from the master if the master does not respond. It must be less than the SOA refresh value. It is recommended that the value should be between 2 minutes to 2 hours."
 
   sql = <<-EOT
     select
@@ -875,15 +857,14 @@ control "dns_soa_retry_value_check" {
   EOT
 
   param "dns_domain_names" {
-    description = "The website URL."
+    description = "DNS domain names."
     default     = var.dns_domain_names
   }
 }
 
 control "dns_soa_expire_value_check" {
   title       = "DNS SOA expire value should be between 1209600 and 2419200 seconds (2 weeks to 4 weeks)"
-  description = "Number of seconds after which secondary name servers should stop answering request for this zone if the master does not respond. This value must be bigger than the sum of Refresh and Retry. It is recommended that the value should be between 2 weeks to 4 weeks."
-  severity    = "low"
+  description = "Number of seconds after which secondary name servers should stop answering request for this zone if the master does not respond. This value must be bigger than the sum of the SOA refresh and retry values. It is recommended that the value should be between 2 weeks to 4 weeks."
 
   sql = <<-EOT
     select
@@ -901,15 +882,14 @@ control "dns_soa_expire_value_check" {
   EOT
 
   param "dns_domain_names" {
-    description = "The website URL."
+    description = "DNS domain names."
     default     = var.dns_domain_names
   }
 }
 
 control "dns_soa_min_ttl_value_check" {
   title       = "DNS SOA minimum TTL value should be between 600 and 86400 seconds (10 minutes to 24 hours)"
-  description = "Time To Live (TTL) is the sort of expiration date that is put on a DNS record. The TTL serves to tell the recursive server or local resolver how long it should keep said record in its cache. The longer the TTL, the longer the resolver holds that information in its cache."
-  severity    = "low"
+  description = "Time To Live (TTL) is the sort of expiration date that is put on a DNS record. The TTL serves to tell the recursive server or local resolver how long it should keep said record in its cache. The longer the TTL, the longer the resolver holds that information in its cache. It is recommended that the value should be between 10 minutes and 24 hours."
 
   sql = <<-EOT
     select
@@ -927,14 +907,14 @@ control "dns_soa_min_ttl_value_check" {
   EOT
 
   param "dns_domain_names" {
-    description = "The website URL."
+    description = "DNS domain names."
     default     = var.dns_domain_names
   }
 }
 
 benchmark "dns_mx_checks" {
-  title         = "Mail Exchange (MX)"
-  description   = "MX checks."
+  title         = "DNS Mail Exchange (MX) checks"
+  description   = "DNS MX checks."
   documentation = file("./controls/docs/dns_mx_overview.md")
   tags          = local.dns_check_common_tags
   children = [
@@ -950,8 +930,7 @@ benchmark "dns_mx_checks" {
 
 control "dns_mx_valid_hostname" {
   title       = "DNS MX records should have valid hostname"
-  description = "It is recommended that MX record should have a valid domain or sub domain name and the name not starts or ends with a dot(.)."
-  severity    = "low"
+  description = "It is recommended that MX record should have a valid domain or subdomain name and the name not starts or ends with a dot (.)."
 
   sql = <<-EOT
     with domain_list as (
@@ -975,7 +954,7 @@ control "dns_mx_valid_hostname" {
   EOT
 
   param "dns_domain_names" {
-    description = "The website URL."
+    description = "DNS domain names."
     default     = var.dns_domain_names
   }
 }
@@ -983,7 +962,6 @@ control "dns_mx_valid_hostname" {
 control "dns_mx_all_ip_public" {
   title       = "DNS MX records should use public IPs"
   description = "For a server to be accessible on the public internet, it needs a public DNS record, and its IP address needs to be reachable on the internet."
-  severity    = "low"
 
   sql = <<-EOT
     with domain_list as (
@@ -1024,7 +1002,7 @@ control "dns_mx_all_ip_public" {
   EOT
 
   param "dns_domain_names" {
-    description = "The website URL."
+    description = "DNS domain names."
     default     = var.dns_domain_names
   }
 }
@@ -1032,7 +1010,6 @@ control "dns_mx_all_ip_public" {
 control "dns_mx_no_cname_with_other_record" {
   title       = "DNS MX records should not contain CNAME record if an NS (or any other) record is present"
   description = "A CNAME record is not allowed to coexist with any other data. This is often attempted by inexperienced administrators as an obvious way to allow your domain name to also be a host. However, DNS servers like BIND will see the CNAME and refuse to add any other resources for that name. Since no other records are allowed to coexist with a CNAME, the NS entries are ignored."
-  severity    = "low"
 
   sql = <<-EOT
     with domain_list as (
@@ -1086,15 +1063,14 @@ control "dns_mx_no_cname_with_other_record" {
   EOT
 
   param "dns_domain_names" {
-    description = "The website URL."
+    description = "DNS domain names."
     default     = var.dns_domain_names
   }
 }
 
 control "dns_mx_not_contain_ip" {
   title       = "DNS MX records should not contain IP address"
-  description = "As per RFC 1035, the MX record must point to a host which itself can be resolved in the DNS. An IP address could not be used as it would be interpreted as an unqualified domain name, which cannot be resolved."
-  severity    = "low"
+  description = "As per RFC 1035, an MX records must point to a host which itself can be resolved in the DNS. An IP address could not be used as it would be interpreted as an unqualified domain name, which cannot be resolved."
 
   sql = <<-EOT
     with mx_record_with_ip as (
@@ -1128,7 +1104,7 @@ control "dns_mx_not_contain_ip" {
   EOT
 
   param "dns_domain_names" {
-    description = "The website URL."
+    description = "DNS domain names."
     default     = var.dns_domain_names
   }
 }
@@ -1136,7 +1112,6 @@ control "dns_mx_not_contain_ip" {
 control "dns_mx_at_least_two" {
   title       = "DNS should have at least 2 MX records"
   description = "It is recommended to have at least 2 MX records for your domain to provide some load balancing by using multiple MX records with the same preference set, as well as provide a backup MX that can be used if the primary one is unavailable."
-  severity    = "low"
 
   sql = <<-EOT
     select
@@ -1157,7 +1132,7 @@ control "dns_mx_at_least_two" {
   EOT
 
   param "dns_domain_names" {
-    description = "The website URL."
+    description = "DNS domain names."
     default     = var.dns_domain_names
   }
 }
@@ -1165,7 +1140,6 @@ control "dns_mx_at_least_two" {
 control "dns_mx_no_duplicate_a_record" {
   title       = "DNS MX records should not have duplicate A records"
   description = "It is recommended that MX records should not use same IPs, since if the server with IP x.x.x.x shuts down the MX service will still be able to work since it has another backup server."
-  severity    = "low"
 
   sql = <<-EOT
     with domain_mx_records as (
@@ -1207,7 +1181,7 @@ control "dns_mx_no_duplicate_a_record" {
   EOT
 
   param "dns_domain_names" {
-    description = "The website URL."
+    description = "DNS domain names."
     default     = var.dns_domain_names
   }
 }
@@ -1215,7 +1189,6 @@ control "dns_mx_no_duplicate_a_record" {
 control "dns_mx_reverse_a_record" {
   title       = "DNS MX records should have reverse A record (PTR)"
   description = "A PTR record is reverse version of an A record. In general A record maps a domain name to an IP address, but PTR record maps IP address to a hostname. It is recommended to use PTR record when using both internal or external mail servers. It allows the receiving end to check the hostname of your IP address."
-  severity    = "high"
 
   sql = <<-EOT
     with domain_list as (
@@ -1281,7 +1254,7 @@ control "dns_mx_reverse_a_record" {
   EOT
 
   param "dns_domain_names" {
-    description = "The website URL."
+    description = "DNS domain names."
     default     = var.dns_domain_names
   }
 }
@@ -1289,8 +1262,8 @@ control "dns_mx_reverse_a_record" {
 # TODO: Update documentation and descriptions
 
 benchmark "dns_www_checks" {
-  title         = "WWW"
-  description   = "WWW"
+  title         = "DNS WWW checks"
+  description   = "DNS WWW checks."
   #documentation = file("./controls/docs/dns_mx_overview.md")
   tags          = local.dns_check_common_tags
   children = [
@@ -1301,7 +1274,6 @@ benchmark "dns_www_checks" {
 control "dns_www_all_ip_public" {
   title       = "DNS WWW IPs should use public IPs"
   description = "For a server to be accessible on the public internet, it needs a public DNS record, and its IP address needs to be reachable on the internet."
-  severity    = "low"
 
   sql = <<-EOT
     with domains_with_www as (
@@ -1349,7 +1321,7 @@ control "dns_www_all_ip_public" {
   EOT
 
   param "dns_domain_names" {
-    description = "The website URL."
+    description = "DNS domain names."
     default     = var.dns_domain_names
   }
 }

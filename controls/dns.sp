@@ -666,7 +666,7 @@ control "dns_ns_different_autonomous_systems" {
 }
 
 benchmark "dns_soa_checks" {
-  title         = "DNS Start of Authority (SOA) checks"
+  title         = "DNS Start of Authority (SOA) Checks"
   description   = "DNS SOA checks."
   documentation = file("./controls/docs/dns_soa_overview.md")
   #tags          = local.dns_check_common_tags
@@ -913,7 +913,7 @@ control "dns_soa_min_ttl_value_check" {
 }
 
 benchmark "dns_mx_checks" {
-  title         = "DNS Mail Exchange (MX) checks"
+  title         = "DNS Mail Exchange (MX) Checks"
   description   = "DNS MX checks."
   documentation = file("./controls/docs/dns_mx_overview.md")
   tags          = local.dns_check_common_tags
@@ -1262,7 +1262,7 @@ control "dns_mx_reverse_a_record" {
 # TODO: Update documentation and descriptions
 
 benchmark "dns_www_checks" {
-  title         = "DNS WWW checks"
+  title         = "DNS WWW Checks"
   description   = "DNS WWW checks."
   #documentation = file("./controls/docs/dns_mx_overview.md")
   tags          = local.dns_check_common_tags

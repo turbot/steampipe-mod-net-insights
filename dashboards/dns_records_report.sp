@@ -154,9 +154,9 @@ query "dns_domain_input" {
       jsonb_array_elements_text(to_jsonb($1::text[])) as domain
   EOQ
 
-  param "domain_name" {
+  param "dns_domain_names" {
     description = "The website URL."
-    default     = var.domain_name
+    default     = var.dns_domain_names
   }
 }
 

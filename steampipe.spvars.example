@@ -1,2 +1,2 @@
 site_url = [ "https://microsoft.com", "https://github.com", "https://turbot.com", "https://steampipe.io" ]
-domain_name = [ "turbot.com", "steampipe.io" ]
+dns_domain_names = [ "github.com", "microsoft.com" ]

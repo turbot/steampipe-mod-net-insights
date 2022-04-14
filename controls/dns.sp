@@ -16,27 +16,27 @@ benchmark "dns_checks" {
   documentation = file("./controls/docs/dns_overview.md")
   tags          = local.dns_check_common_tags
   children = [
-    benchmark.parent_checks,
-    benchmark.ns_checks,
-    benchmark.soa_checks,
-    benchmark.mx_checks,
-    benchmark.www_checks
+    benchmark.dns_parent_checks,
+    benchmark.dns_ns_checks,
+    benchmark.dns_soa_checks,
+    benchmark.dns_mx_checks,
+    benchmark.dns_www_checks
   ]
 }
 
-benchmark "parent_checks" {
+benchmark "dns_parent_checks" {
   title         = "Parent"
   description   = "Parent checks."
   documentation = file("./controls/docs/dns_parent_overview.md")
   tags          = local.dns_check_common_tags
   children = [
-    control.dns_record_found,
-    control.dns_ns_listed_at_parent,
-    control.dns_ns_all_with_type_a_record
+    control.dns_parent_record_found,
+    control.dns_parent_ns_listed_at_parent,
+    control.dns_parent_ns_all_with_type_a_record
   ]
 }
 
-control "dns_record_found" {
+control "dns_parent_record_found" {
   title       = "DNS record must be present"
   description = "Domain Name System (DNS) is used to point any domain toward the IP address of the server. When you search for a domain, the DNS records searches for the IP address of the server and server the website. It is required to have valid records for your domain, so that it can be found when anyone searching for your domain."
   severity    = "low"
@@ -49,8 +49,8 @@ control "dns_record_found" {
         else 'ok'
       end as status,
       case
-        when count(*) = 0 then 'DNS record not found for ' || domain || '.'
-        else 'DNS record found for ' || domain || '.'
+        when count(*) = 0 then domain || ' DNS records not found.'
+        else domain || ' DNS records found.'
       end as reason
     from
       net_dns_record
@@ -65,7 +65,7 @@ control "dns_record_found" {
   }
 }
 
-control "dns_ns_listed_at_parent" {
+control "dns_parent_ns_listed_at_parent" {
   title       = "DNS parent server should have name server information"
   description = "It is highly recommended that the parent server should have information for all your name server, so that if anyone want your domain information and does not know DNS server can ask parent server for information."
   severity    = "high"
@@ -106,7 +106,7 @@ control "dns_ns_listed_at_parent" {
   }
 }
 
-control "dns_ns_all_with_type_a_record" {
+control "dns_parent_ns_all_with_type_a_record" {
   title       = "Every name server listed must have A records"
   description = "The 'A' record is the most fundamental type of DNS record which indicates the IP address of a domain. An A record maps a domain to the physical IP address of the computer hosting that domain. Internet traffic uses the A record to find the computer hosting your domain's DNS settings. It is highly recommended that every name server listed at parent should have A record."
   severity    = "high"
@@ -140,8 +140,8 @@ control "dns_ns_all_with_type_a_record" {
         else 'ok'
       end as status,
       case
-        when (select target from ns_with_type_a_record where domain = domain_list.domain and type is null) is not null then domain || ' has some name servers [' || (select string_agg(target, ', ') from ns_with_type_a_record where domain = domain_list.domain and type is null) || '] that do not have A records.'
-        else 'Every name servers listed at ' || domain || ' parent server has A records.'
+        when (select target from ns_with_type_a_record where domain = domain_list.domain and type is null) is not null then domain || ' has name servers [' || (select string_agg(target, ', ') from ns_with_type_a_record where domain = domain_list.domain and type is null) || '] that do not have A records.'
+        else domain || ' name servers listed at parent server have A records.'
       end as reason
     from
       domain_list;
@@ -153,7 +153,7 @@ control "dns_ns_all_with_type_a_record" {
   }
 }
 
-benchmark "ns_checks" {
+benchmark "dns_ns_checks" {
   title         = "Name Server (NS)"
   description   = "NS checks."
   documentation = file("./controls/docs/dns_ns_overview.md")
@@ -163,8 +163,8 @@ benchmark "ns_checks" {
     control.dns_ns_at_least_two,
     control.dns_ns_authoritative,
     control.dns_ns_responded,
-    control.dns_local_ns_matches_parent_ns_list,
-    control.dns_no_cname_with_other_record,
+    control.dns_ns_local_matches_parent_ns_list,
+    control.dns_dns_no_cname_with_other_record,
     control.dns_ns_no_cname_with_other_record,
     control.dns_ns_on_different_subnets,
     control.dns_ns_all_ip_public,
@@ -173,8 +173,8 @@ benchmark "ns_checks" {
 }
 
 control "dns_ns_name_valid" {
-  title       = "DNS name server should have valid name"
-  description = "It is recommended that all the name server should have valid name format. DNS names can contain only alphabetical characters (A-Z), numeric characters (0-9), the minus sign (-), and the period (.). Period characters are allowed only when they are used to delimit the components of domain style names."
+  title       = "DNS name servers should have valid name"
+  description = "It is recommended that all name servers should have a valid name format. DNS names can contain only alphabetical characters (A-Z), numeric characters (0-9), the minus sign (-), and the period (.). Period characters are allowed only when they are used to delimit the components of domain style names."
   severity    = "low"
 
   sql = <<-EOT
@@ -245,7 +245,7 @@ control "dns_ns_at_least_two" {
 
 control "dns_ns_authoritative" {
   title       = "DNS name servers should answer authoritatively"
-  description = "It is recommended that all the name servers should replied back authoritatively. If the name servers not respond with authority, it is possible that some services will fail if they are configured to only work with authoritative DNS."
+  description = "It is recommended that all the name servers should reply back authoritatively. If the name servers do not respond with authority, it is possible that some services will fail if they are configured to only work with authoritative DNS."
   severity    = "low"
 
   sql = <<-EOT
@@ -283,7 +283,7 @@ control "dns_ns_authoritative" {
         else 'alarm'
       end as status,
       case
-        when ns_non_authoritative.domain is null then domain_list.domain || ' name servers listed at parent server are answer authoritatively.'
+        when ns_non_authoritative.domain is null then domain_list.domain || ' name servers listed at parent server answer authoritatively.'
         else domain_list.domain || ' name servers [' || (select string_agg(target, ', ') from ns_with_authoritative_stats where domain = domain_list.domain and not is_authoritative) || '] are not answering authoritatively.'
       end as reason
     from
@@ -334,7 +334,7 @@ control "dns_ns_responded" {
       end as status,
       case
         when nic.count = pow(nc.count, 2) then nc.domain || ' name servers are responding.'
-        else 'At least one name server in ' || nc.domain || ' failed to respond in a timely manner.'
+        else nc.domain || ' has at least one name server that failed to respond in a timely manner.'
       end as reason
     from
       ns_count as nc,
@@ -350,9 +350,9 @@ control "dns_ns_responded" {
   }
 }
 
-control "dns_local_ns_matches_parent_ns_list" {
-  title       = "Local DNS name server list should match parent name server list"
-  description = "It is recommended that local NS list should list same number of NS as parent NS."
+control "dns_ns_local_matches_parent_ns_list" {
+  title       = "Local DNS name server list should match parent name server list"
+  description = "It is recommended that the local NS list should list the same number of NS as parent NS."
   severity    = "low"
 
   sql = <<-EOT
@@ -400,8 +400,8 @@ control "dns_local_ns_matches_parent_ns_list" {
         else 'alarm'
       end as status,
       case
-        when ns_with_different_ns_count.domain is null then domain_list.domain || ' name server records returned by parent server is same as the one reported by your name servers.'
-        else domain_list.domain || ' name server records returned by parent server doesn''t match with your name servers [' || (select string_agg(target, ', ') from ns_with_name_server_record where parent_server_ns_record_count <> name_server_record_count) || '].'
+        when ns_with_different_ns_count.domain is null then domain_list.domain || ' name server records returned by parent server match local list.'
+        else domain_list.domain || ' name server records returned by parent server do not match with your name servers [' || (select string_agg(target, ', ') from ns_with_name_server_record where parent_server_ns_record_count <> name_server_record_count) || '].'
       end as reason
     from
       domain_list
@@ -414,7 +414,7 @@ control "dns_local_ns_matches_parent_ns_list" {
   }
 }
 
-control "dns_no_cname_with_other_record" {
+control "dns_dns_no_cname_with_other_record" {
   title       = "DNS record should not contain CNAME record if an NS (or any other) record is present"
   description = "A CNAME record is not allowed to coexist with any other data. This is often attempted by inexperienced administrators as an obvious way to allow your domain name to also be a host. However, DNS servers like BIND will see the CNAME and refuse to add any other resources for that name. Since no other records are allowed to coexist with a CNAME, the NS entries are ignored."
   severity    = "low"
@@ -447,7 +447,7 @@ control "dns_no_cname_with_other_record" {
       case
         when all_record_count > 0 and (cname_record_count is null or cname_record_count < 1) then domain || ' has no CNAME record.'
         when cname_record_count > 0 and all_record_count = cname_record_count then domain || ' has CNAME record [' || (select string_agg(target, ', ') from net_dns_record where domain = count_stats.domain) || '].'
-        else domain || ' has CNAME record along with NS (or any other) record.'
+        else domain || ' has CNAME record along with NS (or any other) records.'
       end as reason
     from
       count_stats;
@@ -507,8 +507,8 @@ control "dns_ns_no_cname_with_other_record" {
         else 'alarm'
       end as status,
       case
-        when ns_record_with_cname_other is null then domain_list.domain || ' has no CNAME record along with NS (or any other) record.'
-        else domain_list.domain || ' has CNAME record along with NS (or any other) record.'
+        when ns_record_with_cname_other is null then domain_list.domain || ' name servers have no CNAME record.'
+        else domain_list.domain || ' name servers have CNAME record along with NS (or any other) records.'
       end as reason
     from
       domain_list
@@ -562,7 +562,7 @@ control "dns_ns_on_different_subnets" {
       end as status,
       case
         when count(*) = 1 then domain || ' name servers are on the same subnet.'
-        else domain || ' name servers appear to be dispersed.'
+        else domain || ' name servers are on different subnets.'
       end as reason
     from
       check_ips
@@ -610,7 +610,7 @@ control "dns_ns_all_ip_public" {
         else 'alarm'
       end as status,
       case
-        when ns_record_with_private_ip.domain is null then 'All NS records in ' || domain_list.domain || ' appear to use public IPs.'
+        when ns_record_with_private_ip.domain is null then domain_list.domain || ' NS records appear to use public IPs.'
         else domain_list.domain || ' has NS records using private IPs [' || (select host(ip) from ns_record_with_ip where domain = domain_list.domain and is_private) || '].'
       end as reason
     from
@@ -664,8 +664,8 @@ control "dns_ns_different_autonomous_systems" {
         else 'ok'
       end as status,
       case
-        when count(*) = 1 then domain || ' have name servers located in same location.'
-        else domain || ' name servers are located in different locations.'
+        when count(*) = 1 then domain || ' name servers are in the same location.'
+        else domain || ' name servers are in different locations.'
       end as reason
     from
       check_ips
@@ -678,14 +678,14 @@ control "dns_ns_different_autonomous_systems" {
   }
 }
 
-benchmark "soa_checks" {
+benchmark "dns_soa_checks" {
   title         = "Start of Authority (SOA)"
   description   = "SOA checks."
   documentation = file("./controls/docs/dns_soa_overview.md")
   #tags          = local.dns_check_common_tags
   children = [
-    control.dns_ns_same_serial,
-    control.dns_primary_ns_listed_at_parent,
+    control.dns_soa_ns_same_serial,
+    control.dns_soa_primary_ns_listed_at_parent,
     control.dns_soa_serial_check,
     control.dns_soa_refresh_value_check,
     control.dns_soa_retry_value_check,
@@ -694,7 +694,7 @@ benchmark "soa_checks" {
   ]
 }
 
-control "dns_ns_same_serial" {
+control "dns_soa_ns_same_serial" {
   title       = "All DNS NS records should have same SOA serial"
   description = "Sometimes serial numbers become out of sync when any record within a zone got updated and the changes are transferred from primary name server to other name servers. If the SOA serial number is not same for all NS record there might be a problem with the transfer."
   severity    = "low"
@@ -739,7 +739,7 @@ control "dns_ns_same_serial" {
       case
         when (select count(*) from unique_serial where domain = d.domain) is null or (select count(*) from unique_serial where domain = d.domain) > 1
           then d.domain || ' has at least 1 name server with different SOA serial.'
-        else 'All name servers listed in ' || d.domain || ' have same SOA serial.'
+        else d.domain || ' name servers have same SOA serial.'
       end as reason
     from
       domain_list as d;
@@ -751,7 +751,7 @@ control "dns_ns_same_serial" {
   }
 }
 
-control "dns_primary_ns_listed_at_parent" {
+control "dns_soa_primary_ns_listed_at_parent" {
   title       = "DNS primary name server should be listed at parent"
   description = "The Primary Name Server is the name server declared in your SOA file and is usually the name server that reads your records from zone files and is responsible for distributing that data to your secondary name servers. This problem is present when this primary name server is not included in the parent referrals and is almost always accompanied by a Local Parent Mismatch problem."
   severity    = "low"
@@ -812,7 +812,7 @@ control "dns_soa_serial_check" {
         else 'alarm'
       end as status,
       case
-        when not (select serial::text ~ '^\d{4}[0-1]{1}[0-9]{1}[0-3]{1}[0-9]{1}\d{2}$') then domain || ' SOA serial number ' || serial || ' doesn''t match recommended format (per RFC1912 2.2) YYYYMMDDnn.'
+        when not (select serial::text ~ '^\d{4}[0-1]{1}[0-9]{1}[0-3]{1}[0-9]{1}\d{2}$') then domain || ' SOA serial number ' || serial || ' format doesn''t match recommended format YYYYMMDDnn (per RFC1912 2.2).'
         else domain || ' SOA serial number is ' || serial || '.'
       end as reason
     from
@@ -829,7 +829,7 @@ control "dns_soa_serial_check" {
 }
 
 control "dns_soa_refresh_value_check" {
-  title       = "DNS SOA refresh value should be between 20 minutes and 12 hours"
+  title       = "DNS SOA refresh value should be between 1200 and 43200 seconds (12 minutes to 12 hours)"
   description = "Number of seconds after which secondary name servers should query the master for the SOA record, to detect zone changes. It is recommended that the value should be between 20 minutes to 12 hours."
   severity    = "low"
 
@@ -840,7 +840,7 @@ control "dns_soa_refresh_value_check" {
         when refresh < 1200 or refresh > 43200 then 'alarm'
         else 'ok'
       end as status,
-      domain || ' SOA refresh value is ' || (refresh / 60) || ' minutes.' as reason
+      domain || ' SOA refresh value is ' || refresh || ' second(s).' as reason
     from
       net_dns_record
     where
@@ -855,7 +855,7 @@ control "dns_soa_refresh_value_check" {
 }
 
 control "dns_soa_retry_value_check" {
-  title       = "DNS SOA retry value should be between 2 minutes and 2 hours"
+  title       = "DNS SOA retry value should be between 120 and 7200 seconds (2 minutes to 2 hours)"
   description = "Number of seconds after which secondary name servers should retry to request the serial number from the master if the master does not respond. It must be less than Refresh. It is recommended that the value should be between 2 minutes to 2 hours."
   severity    = "low"
 
@@ -866,7 +866,7 @@ control "dns_soa_retry_value_check" {
         when retry < 120 or retry > 7200 then 'alarm'
         else 'ok'
       end as status,
-      domain || ' SOA retry value is ' || (retry / 60) || ' minutes.' as reason
+      domain || ' SOA retry value is ' || retry || ' second(s).' as reason
     from
       net_dns_record
     where
@@ -881,7 +881,7 @@ control "dns_soa_retry_value_check" {
 }
 
 control "dns_soa_expire_value_check" {
-  title       = "DNS SOA expire value should be between 2 weeks and 4 weeks"
+  title       = "DNS SOA expire value should be between 1209600 and 2419200 seconds (2 weeks to 4 weeks)"
   description = "Number of seconds after which secondary name servers should stop answering request for this zone if the master does not respond. This value must be bigger than the sum of Refresh and Retry. It is recommended that the value should be between 2 weeks to 4 weeks."
   severity    = "low"
 
@@ -892,7 +892,7 @@ control "dns_soa_expire_value_check" {
         when expire < 1209600 or expire > 2419200 then 'alarm'
         else 'ok'
       end as status,
-      domain || ' SOA expire value is ' || expire || ' seconds.' as reason
+      domain || ' SOA expire value is ' || expire || ' second(s).' as reason
     from
       net_dns_record
     where
@@ -907,7 +907,7 @@ control "dns_soa_expire_value_check" {
 }
 
 control "dns_soa_min_ttl_value_check" {
-  title       = "DNS SOA minimum TTL value should be between 10 minutes to 24 hours"
+  title       = "DNS SOA minimum TTL value should be between 600 and 86400 seconds (10 minutes to 24 hours)"
   description = "Time To Live (TTL) is the sort of expiration date that is put on a DNS record. The TTL serves to tell the recursive server or local resolver how long it should keep said record in its cache. The longer the TTL, the longer the resolver holds that information in its cache."
   severity    = "low"
 
@@ -918,7 +918,7 @@ control "dns_soa_min_ttl_value_check" {
         when min_ttl < 600 or min_ttl > 86400 then 'alarm'
         else 'ok'
       end as status,
-      domain || ' SOA minimum TTL value is ' || (min_ttl / 60) || ' minutes.' as reason
+      domain || ' SOA minimum TTL value is ' || min_ttl || ' second(s).' as reason
     from
       net_dns_record
     where
@@ -932,7 +932,7 @@ control "dns_soa_min_ttl_value_check" {
   }
 }
 
-benchmark "mx_checks" {
+benchmark "dns_mx_checks" {
   title         = "Mail Exchange (MX)"
   description   = "MX checks."
   documentation = file("./controls/docs/dns_mx_overview.md")
@@ -1015,7 +1015,7 @@ control "dns_mx_all_ip_public" {
         else 'alarm'
       end as status,
       case
-        when mx_record_with_private_ip.domain is null then 'All MX records in ' || domain_list.domain || ' appear to use public IPs.'
+        when mx_record_with_private_ip.domain is null then domain_list.domain || ' MX records appear to use public IPs.'
         else domain_list.domain || ' has MX records using private IPs [' || (select host(ip) from mx_record_with_ip where domain = domain_list.domain and is_private) || '].'
       end as reason
     from
@@ -1198,8 +1198,8 @@ control "dns_mx_no_duplicate_a_record" {
         else 'alarm'
       end as status,
       case
-        when p.domain is null then d.domain || ' MX records not using duplicate IPs.'
-        else d.domain || ' MX records using duplicate IPs.'
+        when p.domain is null then d.domain || ' MX records do not have duplicate IPs.'
+        else d.domain || ' MX records have duplicate IPs.'
       end as reason
     from
       mx_count_by_domain as d
@@ -1288,7 +1288,7 @@ control "dns_mx_reverse_a_record" {
 
 # TODO: Update documentation and descriptions
 
-benchmark "www_checks" {
+benchmark "dns_www_checks" {
   title         = "WWW"
   description   = "WWW"
   #documentation = file("./controls/docs/dns_mx_overview.md")
@@ -1340,7 +1340,7 @@ control "dns_www_all_ip_public" {
         else 'alarm'
       end as status,
       case
-        when domain_with_www_with_private_ip.domain is null then 'All WWW IPs in ' || domains_with_www.domain || ' appear to use public IPs.'
+        when domain_with_www_with_private_ip.domain is null then domains_with_www.domain || ' WWW IPs appear to use public IPs.'
         else domains_with_www.domain || ' has WWW records using private IPs [' || (select host(ip) from domain_with_www_record where domain = domains_with_www.domain and is_private) || '].'
       end as reason
     from

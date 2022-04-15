@@ -792,11 +792,11 @@ control "dns_soa_serial_check" {
     select
       domain as resource,
       case
-        when (select serial::text ~ '^\d{4}[0-1]{1}[0-9]{1}[0-3]{1}[0-9]{1}\d{2}$') then 'ok'
+        when (select serial::text ~ '^\d{4}[0-1]{1}[0-9]{1}[0-3]{1}[0-9]{1}\d{2}$') or (serial >=1 and serial <=4294967295) then 'ok'
         else 'alarm'
       end as status,
       case
-        when not (select serial::text ~ '^\d{4}[0-1]{1}[0-9]{1}[0-3]{1}[0-9]{1}\d{2}$') then domain || ' SOA serial number ' || serial || ' format doesn''t match recommended format YYYYMMDDnn (per RFC1912 2.2).'
+        when not (select serial::text ~ '^\d{4}[0-1]{1}[0-9]{1}[0-3]{1}[0-9]{1}\d{2}$') and (serial >=1 and serial <=4294967295) then domain || ' SOA serial number is ' || serial || '. The recommended format is YYYYMMDDnn (per RFC1912 2.2).'
         else domain || ' SOA serial number is ' || serial || '.'
       end as reason
     from
@@ -1114,21 +1114,41 @@ control "dns_mx_at_least_two" {
   description = "It is recommended to have at least 2 MX records for your domain to provide some load balancing by using multiple MX records with the same preference set, as well as provide a backup MX that can be used if the primary one is unavailable."
 
   sql = <<-EOT
+    with domain_list as (
+      select distinct domain from net_dns_record where domain in (select jsonb_array_elements_text(to_jsonb($1::text[]))) order by domain
+    ),
+    domain_mx_records as (
+      select domain, target from net_dns_record where domain in (select domain from domain_list) and type = 'MX' order by domain
+    ),
+    mx_ips as (
+      select * from net_dns_record where domain in (select target from domain_mx_records) and type = 'A'
+    ),
+    mx_record_with_ip as (
+      select
+        domain_mx_records.domain,
+        domain_mx_records.target,
+        mx_ips.ip
+      from
+        domain_mx_records
+        inner join mx_ips on domain_mx_records.target = mx_ips.domain
+    ),
+    mx_record_count_by_domain as (
+      select domain, count(*) from mx_record_with_ip group by domain order by domain
+    )
     select
-      domain as resource,
+      domain_list.domain as resource,
       case
-        when count(*) < 2 then 'alarm'
+        when mx_record_count_by_domain.domain is null then 'alarm'
+        when mx_record_count_by_domain.count < 2 then 'alarm'
         else 'ok'
       end as status,
-      domain || ' has ' || count(*) || ' MX record(s).' as reason
+      case
+        when (select count(*) from domain_mx_records where domain = domain_list.domain) < 2 and mx_record_count_by_domain.count > 2 then domain_list.domain || ' has 1 MX record, but that MX record has multiple IPs.'
+        else domain_list.domain || ' has ' || (select count(*) from domain_mx_records where domain = domain_list.domain) || ' MX record(s).'
+      end as reason
     from
-      net_dns_record
-    where
-      domain in (select jsonb_array_elements_text(to_jsonb($1::text[])))
-      and type = 'MX'
-    group by
-      domain,
-      type;
+      domain_list
+      left join mx_record_count_by_domain on domain_list.domain = mx_record_count_by_domain.domain;
   EOT
 
   param "dns_domain_names" {
@@ -1246,7 +1266,7 @@ control "dns_mx_reverse_a_record" {
       case
         when (select count(*) from mx_with_ptr_record_stats where domain = domain_list.domain and not has_ptr_record group by domain) is not null
           then domain || ' has MX records [' || (select string_agg(rev_add, ', ') from mx_with_ptr_record_stats where domain = domain_list.domain and not has_ptr_record)
-            || E'] \n with no reverse DNS (PTR) entries.'
+            || '] with no reverse DNS (PTR) entries.'
         else domain || ' has PTR records for all MX records.'
       end as reason
     from

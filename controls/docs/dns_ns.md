@@ -4,4 +4,4 @@ Name servers (NS) are the repositories of information that make up the domain da
 
 When searching for a domain name, it hits the name server, which translates the domain name into the Internet Protocol (IP) address, so that the browser can locate it. Once it’s found the domain name in the name server, web browser uses the IP address to connect to the server and load the requested site.
 
-This benchmark contains best practice checks for NS DNS records.
+This benchmark contains best practices for NS records.

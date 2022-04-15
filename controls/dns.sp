@@ -5,7 +5,7 @@ variable "dns_domain_names" {
 }
 
 locals {
-  dns_check_common_tags = {
+  dns_checks_common_tags = {
     plugin = "net"
   }
 }
@@ -14,7 +14,7 @@ benchmark "dns_checks" {
   title         = "DNS Best Practices"
   description   = "DNS best practices."
   documentation = file("./controls/docs/dns_overview.md")
-  tags          = local.dns_check_common_tags
+  tags          = local.dns_checks_common_tags
   children = [
     benchmark.dns_parent_checks,
     benchmark.dns_ns_checks,
@@ -28,7 +28,7 @@ benchmark "dns_parent_checks" {
   title         = "Parent Records"
   description   = "Parent record checks."
   documentation = file("./controls/docs/dns_parent.md")
-  tags          = local.dns_check_common_tags
+  tags          = local.dns_checks_common_tags
   children = [
     control.dns_parent_records_found,
     control.dns_parent_ns_listed_at_parent,
@@ -154,7 +154,7 @@ benchmark "dns_ns_checks" {
   title         = "Name Server (NS) Records"
   description   = "NS record checks."
   documentation = file("./controls/docs/dns_ns.md")
-  tags          = local.dns_check_common_tags
+  tags          = local.dns_checks_common_tags
   children = [
     control.dns_ns_name_valid,
     control.dns_ns_at_least_two,
@@ -669,7 +669,7 @@ benchmark "dns_soa_checks" {
   title         = "Start of Authority (SOA) Records"
   description   = "SOA record checks."
   documentation = file("./controls/docs/dns_soa.md")
-  #tags          = local.dns_check_common_tags
+  tags          = local.dns_checks_common_tags
   children = [
     control.dns_soa_ns_same_serial,
     control.dns_soa_primary_ns_listed_at_parent,
@@ -916,7 +916,7 @@ benchmark "dns_mx_checks" {
   title         = "Mail Exchange (MX) Records"
   description   = "MX record checks."
   documentation = file("./controls/docs/dns_mx.md")
-  tags          = local.dns_check_common_tags
+  tags          = local.dns_checks_common_tags
   children = [
     control.dns_mx_valid_hostname,
     control.dns_mx_all_ip_public,
@@ -1259,13 +1259,11 @@ control "dns_mx_reverse_a_record" {
   }
 }
 
-# TODO: Update documentation and descriptions
-
 benchmark "dns_www_checks" {
   title         = "WWW Records"
   description   = "WWW record checks."
-  #documentation = file("./controls/docs/dns_mx.md")
-  tags          = local.dns_check_common_tags
+  documentation = file("./controls/docs/dns_www.md")
+  tags          = local.dns_checks_common_tags
   children = [
     control.dns_www_all_ip_public
   ]

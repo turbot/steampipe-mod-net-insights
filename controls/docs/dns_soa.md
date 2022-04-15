@@ -4,4 +4,4 @@ A Start of Authority (SOA) record is a type of resource record in the DNS contai
 
 Every domain must have an SOA record at the cutover point where the domain is delegated from its parent. A zone without an SOA record does not conform to the standard required by [RFC 1035](https://datatracker.ietf.org/doc/html/rfc1035).
 
-This benchmark contains best practice checks for SOA DNS records.
+This benchmark contains best practices for SOA records.

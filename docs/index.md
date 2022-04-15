@@ -4,25 +4,13 @@ repository: "https://github.com/turbot/steampipe-mod-net-insights"
 
 # Net Insights Mod
 
-Run individual configuration, compliance and security controls or full compliance benchmarks to validate security best practices based on DNS and website response headers.
+Run individual configuration, compliance and security controls to validate security best practices for DNS records.
 
 <img src="https://raw.githubusercontent.com/turbot/steampipe-mod-net-insights/initial-dashboard-compliance/docs/images/net_security_headers_report.png" width="50%" type="thumbnail"/>
 
-## Overview
-
-Dashboards can help answer questions like:
-
-- What are the name server records returned by the parent server?
-- Are all the name server listed in parent responding?
-- Are all IPs of name servers public?
-- What is the SOA record for your domain?
-- Are there any MX records contains IP in the host name?
-
-Dashboards are available for 15+ checks based on DNS records, i.e NS, SOA, and MX!
-
 ## References
 
-The Net plugin is a set of utility tables for steampipe to query attributes of X.509 certificates associated with websites, DNS records and connectivity to specific network socket addresses.
+[Net plugin](https://hub.steampipe.io/plugins/turbot/net) is a set of utility tables for steampipe to query attributes of X.509 certificates associated with websites, DNS records and connectivity to specific network socket addresses.
 
 [Steampipe](https://steampipe.io) is an open source CLI to instantly query cloud APIs using SQL.
 
@@ -33,19 +21,31 @@ The Net plugin is a set of utility tables for steampipe to query attributes of X
 - **[Benchmarks and controls →](https://hub.steampipe.io/mods/turbot/net_insights/controls)**
 - **[Named queries →](https://hub.steampipe.io/mods/turbot/net_insights/queries)**
 
-## Get started
+## Getting started
 
-Install the Net plugin with [Steampipe](https://steampipe.io):
+### Installation
+
+1. Install the Net plugin:
 
 ```shell
 steampipe plugin install net
 ```
 
-Clone:
+2. Clone this repo:
 
 ```sh
 git clone https://github.com/turbot/steampipe-mod-net-insights.git
 cd steampipe-mod-net-insights
+```
+
+### Usage
+
+#### Running benchmarks
+
+Preview running all benchmarks:
+
+```shell
+steampipe check all --dry-run
 ```
 
 Run all benchmarks:
@@ -54,10 +54,24 @@ Run all benchmarks:
 steampipe check all
 ```
 
-Run a single benchmark:
+Use Steampipe introspection to view all current benchmarks:
+
+```shell
+steampipe query "select resource_name, title, description from steampipe_benchmark;"
+```
+
+Run an individual benchmark:
 
 ```shell
 steampipe check benchmark.dns_checks
+```
+
+#### Running controls
+
+Use Steampipe introspection to view all current controls:
+
+```shell
+steampipe query "select resource_name, title, description from steampipe_control;"
 ```
 
 Run a specific control:
@@ -66,23 +80,26 @@ Run a specific control:
 steampipe check control.dns_ns_name_valid
 ```
 
-Start your dashboard server to get started:
-
-```shell
-steampipe dashboard
-```
-
-By default, the dashboard interface will then be launched in a new browser window at `https://localhost:9194`.
-
-From here, you can view all of your dashboards and reports.
-
 ### Credentials
 
 No credentials required.
 
 ### Configuration
 
-No extra configuration is required.
+Several benchmarks have [input variables](https://steampipe.io/docs/using-steampipe/mod-variables) that can be configured to better match your environment and requirements. Each variable has a default defined in its source file, e.g., `controls/dns.sp`, but these can be overriden in several ways:
+
+- Copy and rename the `steampipe.spvars.example` file to `steampipe.spvars`, and then modify the variable values inside that file
+- Pass in a value on the command line:
+  ```shell
+  steampipe check benchmark.dns_checks --var 'dns_domain_names=["github.com", "amazon.com"]'
+  ```
+- Set an environment variable:
+  ```shell
+  SP_VAR_dns_domain_names='["github.com", "amazon.com"]' steampipe check control.dns_ns_name_valid
+  ```
+  - Note: When using environment variables, if the variable is defined in `steampipe.spvars` or passed in through the command line, either of those will take precedence over the environment variable value. For more information on variable definition precedence, please see the link below.
+
+These are only some of the ways you can set variables. For a full list, please see [Passing Input Variables](https://steampipe.io/docs/using-steampipe/mod-variables#passing-input-variables).
 
 ## Get involved
 

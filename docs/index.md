@@ -6,7 +6,7 @@ repository: "https://github.com/turbot/steampipe-mod-net-insights"
 
 Run individual configuration, compliance and security controls to validate security best practices for DNS records.
 
-<img src="https://raw.githubusercontent.com/turbot/steampipe-mod-net-insights/initial-dashboard-compliance/docs/images/net_security_headers_report.png" width="50%" type="thumbnail"/>
+<img src="https://raw.githubusercontent.com/turbot/steampipe-mod-net-insights/dns-benchmark-release/docs/images/net_dns_checks_output.png" width="50%" type="thumbnail"/>
 
 ## References
 

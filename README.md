@@ -2,7 +2,7 @@
 
 20+ checks covering security best practices for DNS records.
 
-![image](https://raw.githubusercontent.com/turbot/steampipe-mod-net-insights/initial-dashboard-compliance/docs/images/net_security_headers_report.png)
+![image](https://raw.githubusercontent.com/turbot/steampipe-mod-net-insights/dns-benchmark-release/docs/images/net_dns_checks_output.png)
 
 ## Getting started
 

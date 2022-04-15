@@ -1,4 +1,4 @@
-# Net Compliance Scanning Tool
+# Net Insights
 
 20+ checks covering industry defined security best practices based on DNS and website response headers.
 
@@ -67,4 +67,4 @@ Please see the [contribution guidelines](https://github.com/turbot/steampipe/blo
 `help wanted` issues:
 
 - [Steampipe](https://github.com/turbot/steampipe/labels/help%20wanted)
-- [AWS Compliance Mod](https://github.com/turbot/steampipe-mod-net-insights/labels/help%20wanted)
+- [Net Insights Mod](https://github.com/turbot/steampipe-mod-net-insights/labels/help%20wanted)

@@ -52,7 +52,7 @@ steampipe query "select resource_name from steampipe_control;"
 Run a specific control:
 
 ```shell
-steampipe check control.dns_ns_at_least_two
+steampipe check control.dns_ns_name_valid
 ```
 
 ## Contributing

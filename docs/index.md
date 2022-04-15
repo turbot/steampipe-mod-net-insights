@@ -63,7 +63,7 @@ steampipe check benchmark.dns_checks
 Run a specific control:
 
 ```shell
-steampipe check control.dns_ns_at_least_two
+steampipe check control.dns_ns_name_valid
 ```
 
 Start your dashboard server to get started:

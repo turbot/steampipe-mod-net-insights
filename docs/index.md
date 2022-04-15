@@ -19,7 +19,6 @@ Run individual configuration, compliance and security controls to validate secur
 ## Documentation
 
 - **[Benchmarks and controls →](https://hub.steampipe.io/mods/turbot/net_insights/controls)**
-- **[Named queries →](https://hub.steampipe.io/mods/turbot/net_insights/queries)**
 
 ## Getting started
 

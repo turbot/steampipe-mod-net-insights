@@ -137,7 +137,7 @@ control "dns_parent_ns_all_with_type_a_record" {
         else 'ok'
       end as status,
       case
-        when (select target from ns_with_type_a_record where domain = domain_list.domain and type is null) is not null then domain || ' has name servers [' || (select string_agg(target, ', ') from ns_with_type_a_record where domain = domain_list.domain and type is null) || '] that do not have A records.'
+        when (select target from ns_with_type_a_record where domain = domain_list.domain and type is null) is not null then domain || ' name servers without A records: [' || (select string_agg(target, ', ') from ns_with_type_a_record where domain = domain_list.domain and type is null) || '].'
         else domain || ' name servers listed at parent server have A records.'
       end as reason
     from
@@ -278,7 +278,7 @@ control "dns_ns_authoritative" {
       end as status,
       case
         when ns_non_authoritative.domain is null then domain_list.domain || ' name servers listed at parent server answer authoritatively.'
-        else domain_list.domain || ' name servers [' || (select string_agg(target, ', ') from ns_with_authoritative_stats where domain = domain_list.domain and not is_authoritative) || '] are not answering authoritatively.'
+        else domain_list.domain || ' name servers do not answer authoritatively: [' || (select string_agg(target, ', ') from ns_with_authoritative_stats where domain = domain_list.domain and not is_authoritative) || '].'
       end as reason
     from
       domain_list
@@ -393,7 +393,7 @@ control "dns_ns_local_matches_parent_ns_list" {
       end as status,
       case
         when ns_with_different_ns_count.domain is null then domain_list.domain || ' name server records returned by parent server match local list.'
-        else domain_list.domain || ' name server records returned by parent server do not match with your name servers [' || (select string_agg(target, ', ') from ns_with_name_server_record where parent_server_ns_record_count <> name_server_record_count) || '].'
+        else domain_list.domain || ' parent name server records do not match local records: [' || (select string_agg(target, ', ') from ns_with_name_server_record where parent_server_ns_record_count <> name_server_record_count) || '].'
       end as reason
     from
       domain_list
@@ -437,7 +437,7 @@ control "dns_ns_dns_no_cname_with_other_record" {
       end as status,
       case
         when all_record_count > 0 and (cname_record_count is null or cname_record_count < 1) then domain || ' has no CNAME record.'
-        when cname_record_count > 0 and all_record_count = cname_record_count then domain || ' has CNAME record [' || (select string_agg(target, ', ') from net_dns_record where domain = count_stats.domain) || '].'
+        when cname_record_count > 0 and all_record_count = cname_record_count then domain || ' has CNAME records: [' || (select string_agg(target, ', ') from net_dns_record where domain = count_stats.domain) || '].'
         else domain || ' has CNAME record along with NS (or any other) records.'
       end as reason
     from
@@ -599,7 +599,7 @@ control "dns_ns_all_ip_public" {
       end as status,
       case
         when ns_record_with_private_ip.domain is null then domain_list.domain || ' NS records appear to use public IPs.'
-        else domain_list.domain || ' has NS records using private IPs [' || (select host(ip) from ns_record_with_ip where domain = domain_list.domain and is_private) || '].'
+        else domain_list.domain || ' has NS records using private IPs: [' || (select host(ip) from ns_record_with_ip where domain = domain_list.domain and is_private) || '].'
       end as reason
     from
       domain_list
@@ -792,11 +792,12 @@ control "dns_soa_serial_check" {
     select
       domain as resource,
       case
-        when (select serial::text ~ '^\d{4}[0-1]{1}[0-9]{1}[0-3]{1}[0-9]{1}\d{2}$') or (serial >=1 and serial <=4294967295) then 'ok'
-        else 'alarm'
+        when serial < 1 or serial > 4294967295 then 'alarm'
+        when not (select serial::text ~ '^\d{4}[0-1]{1}[0-9]{1}[0-3]{1}[0-9]{1}\d{2}$') then 'info'
+        else 'ok'
       end as status,
       case
-        when not (select serial::text ~ '^\d{4}[0-1]{1}[0-9]{1}[0-3]{1}[0-9]{1}\d{2}$') and (serial >=1 and serial <=4294967295) then domain || ' SOA serial number is ' || serial || '. The recommended format is YYYYMMDDnn (per RFC1912 2.2).'
+        when not (select serial::text ~ '^\d{4}[0-1]{1}[0-9]{1}[0-3]{1}[0-9]{1}\d{2}$') then domain || ' SOA serial number is ' || serial || '. The recommended format is YYYYMMDDnn (per RFC1912 2.2).'
         else domain || ' SOA serial number is ' || serial || '.'
       end as reason
     from
@@ -994,7 +995,7 @@ control "dns_mx_all_ip_public" {
       end as status,
       case
         when mx_record_with_private_ip.domain is null then domain_list.domain || ' MX records appear to use public IPs.'
-        else domain_list.domain || ' has MX records using private IPs [' || (select host(ip) from mx_record_with_ip where domain = domain_list.domain and is_private) || '].'
+        else domain_list.domain || ' has MX records using private IPs: [' || (select host(ip) from mx_record_with_ip where domain = domain_list.domain and is_private) || '].'
       end as reason
     from
       domain_list
@@ -1265,8 +1266,7 @@ control "dns_mx_reverse_a_record" {
       end as status,
       case
         when (select count(*) from mx_with_ptr_record_stats where domain = domain_list.domain and not has_ptr_record group by domain) is not null
-          then domain || ' has MX records [' || (select string_agg(rev_add, ', ') from mx_with_ptr_record_stats where domain = domain_list.domain and not has_ptr_record)
-            || '] with no reverse DNS (PTR) entries.'
+          then domain || ' MX records have no PTR entries: [' || (select string_agg(rev_add, ', ') from mx_with_ptr_record_stats where domain = domain_list.domain and not has_ptr_record) || '].'
         else domain || ' has PTR records for all MX records.'
       end as reason
     from
@@ -1331,7 +1331,7 @@ control "dns_www_all_ip_public" {
       end as status,
       case
         when domain_with_www_with_private_ip.domain is null then domains_with_www.domain || ' WWW IPs appear to use public IPs.'
-        else domains_with_www.domain || ' has WWW records using private IPs [' || (select host(ip) from domain_with_www_record where domain = domains_with_www.domain and is_private) || '].'
+        else domains_with_www.domain || ' has WWW records using private IPs: [' || (select host(ip) from domain_with_www_record where domain = domains_with_www.domain and is_private) || '].'
       end as reason
     from
       domains_with_www

@@ -5,7 +5,8 @@ dashboard "dns_records_report" {
   input "domain_name_input" {
     title = "Select a domain:"
     width = 4
-    query = query.dns_domain_input
+    type  = "text"
+    placeholder = "example.com"
   }
 
   # Parent
@@ -24,12 +25,14 @@ dashboard "dns_records_report" {
         }
       }
 
+      /*
       table {
         query = query.dns_parent_ns_record
         args  = {
           domain_name_input = self.input.domain_name_input.value
         }
       }
+      */
     }
 
     container {
@@ -142,21 +145,6 @@ dashboard "dns_records_report" {
         wrap = "all"
       }
     }
-  }
-}
-
-query "dns_domain_input" {
-  sql = <<-EOQ
-    select
-      domain as label,
-      domain as value
-    from
-      jsonb_array_elements_text(to_jsonb($1::text[])) as domain
-  EOQ
-
-  param "dns_domain_names" {
-    description = "The website URL."
-    default     = var.dns_domain_names
   }
 }
 

@@ -544,7 +544,22 @@ query "dns_ns_report" {
 query "dns_soa_report" {
   sql = <<-EOQ
     with domain_list as (
-      select distinct domain from net_dns_record where domain = $1 order by domain
+      select distinct domain, substring( domain from '^(?:[^/:]*:[^/@]*@)?(?:[^/:.]*\.)+([^:/]+)' ) as tld from net_dns_record where domain = $1 order by domain
+    ),
+    domain_parent_server as (
+      select l.domain, d.domain as tld, d.target as parent_server from net_dns_record as d inner join domain_list as l on d.domain = l.tld where d.type = 'SOA'
+    ),
+    domain_parent_server_ip as (
+      select * from net_dns_record where domain in (select parent_server from domain_parent_server)
+    ),
+    domain_parent_server_with_ip as (
+      select domain_parent_server.domain, host(domain_parent_server_ip.ip) as ip_text from domain_parent_server inner join domain_parent_server_ip on domain_parent_server.parent_server = domain_parent_server_ip.domain where domain_parent_server_ip.type = 'A' order by domain_parent_server.domain
+    ),
+    domain_parent_server_ns_list as (
+      select net_dns_record.domain, net_dns_record.target as name_server from net_dns_record inner join domain_parent_server_with_ip on net_dns_record.domain = domain_parent_server_with_ip.domain and net_dns_record.dns_server = domain_parent_server_with_ip.ip_text and net_dns_record.type = 'NS'
+    ),
+    domain_primary_ns as (
+      select target from net_dns_record where domain = $1 and type = 'SOA'
     ),
     domain_ns_records as (
       select * from net_dns_record where domain in (select domain from domain_list) and type = 'NS' order by domain
@@ -581,10 +596,25 @@ query "dns_soa_report" {
       domain_list as d
     UNION
     select
+      'Primary name server listed at parent' as "Recommendation",
+      case
+        when (select count(*) from domain_parent_server_ns_list where name_server in (select * from domain_primary_ns)) is null then '❌'
+        else '✅'
+      end as "Status",
+      case
+        when (select count(*) from domain_parent_server_ns_list where name_server in (select * from domain_primary_ns)) is null then 'Primary name server not listed in parent.'
+        else domain || ' primary name server ' || (select target from domain_primary_ns) || ' listed at parent.'
+      end
+        || ' Primary name server is the name server declared in your SOA file and generally reads your records from zone files. It is responsible for distributing the data to secondary name servers. Unmatched NS records can cause delays when resolving domain records, as it tries to contact a name server that is either non-existent or non-authoritative.' as "Result"
+    from
+      domain_list
+    UNION
+    select
       'SOA serial number should be between 1 and 4294967295' as "Recommendation",
       case
-        when (select serial::text ~ '^\d{4}[0-1]{1}[0-9]{1}[0-3]{1}[0-9]{1}\d{2}$') then '✅'
-        else '❌'
+        when serial < 1 or serial > 4294967295 then '❌'
+        when not (select serial::text ~ '^\d{4}[0-1]{1}[0-9]{1}[0-3]{1}[0-9]{1}\d{2}$') then 'ℹ️'
+        else '✅'
       end as "Status",
       case
         when not (select serial::text ~ '^\d{4}[0-1]{1}[0-9]{1}[0-3]{1}[0-9]{1}\d{2}$') then domain || ' SOA serial number ' || serial || ' doesn''t match recommended format (per RFC1912 2.2) YYYYMMDDnn.'
@@ -659,11 +689,11 @@ query "dns_soa_report" {
 
 query "dns_mx_report" {
   sql = <<-EOQ
-    with domain_mx_records as (
-      select * from net_dns_record where domain = $1 and type = 'MX'
+    with domain_list as (
+      select distinct domain from net_dns_record where domain = $1
     ),
-    domain_list as (
-      select distinct domain from net_dns_record where domain in ($1)
+    domain_mx_records as (
+      select * from net_dns_record where domain = $1 and type = 'MX'
     ),
     domain_mx_count as (
       select domain, count(*) from domain_mx_records where domain = $1 group by domain
@@ -748,6 +778,9 @@ query "dns_mx_report" {
         reverse as rev_add
       from
         mx_with_reverse_add
+    ),
+    mx_record_count_by_domain as (
+      select domain, count(*) from mx_record_with_ip group by domain order by domain
     )
     select
       'MX records valid hostname' as "Recommendation",
@@ -766,19 +799,18 @@ query "dns_mx_report" {
     select
       'Multiple MX records' as "Recommendation",
       case
-        when count(*) < 2 and (select count(*) from mx_record_with_ip where domain = $1) > 1 then '✅'
-        when count(*) < 2 then '❌'
+        when mx_record_count_by_domain.domain is null then '❌'
+        when mx_record_count_by_domain.count < 2 then '❌'
         else '✅'
       end as "Status",
       case
-        when count(*) < 2 and (select count(*) from mx_record_with_ip where domain = $1) > 1 then count(*) || ' MX record(s) found but that MX record has multiple IPs.'
-        else count(*) || ' MX record(s) found.'
+        when (select count(*) from domain_mx_records where domain = domain_list.domain) < 2 and mx_record_count_by_domain.count > 2 then domain_list.domain || ' has 1 MX record, but that MX record has multiple IPs.'
+        else domain_list.domain || ' has ' || (select count(*) from domain_mx_records where domain = domain_list.domain) || ' MX record(s).'
       end
         || ' It is recommended to use at least 2 MX records so that backup server can receive mail when one server goes down.' as "Result"
     from
-      domain_mx_records
-    where
-      domain = $1
+      domain_list
+      left join mx_record_count_by_domain on domain_list.domain = mx_record_count_by_domain.domain
     UNION
     select
       'MX IPs are public' as "Recommendation",
@@ -818,8 +850,8 @@ query "dns_mx_report" {
         else '❌'
       end as "Status",
       case
-        when p.domain is null then 'MX records not using duplicate IPs.'
-        else 'MX records using duplicate IPs.'
+        when p.domain is null then 'MX records do not have duplicate IPs.'
+        else 'MX records have duplicate IPs.'
       end
         || ' It is recommended to use different IPs for records so that if server goes down, other server can receive mail.' as "Result"
     from
@@ -834,8 +866,8 @@ query "dns_mx_report" {
       end as "Status",
       case
         when (select count(*) from mx_with_ptr_record_stats where domain = domain_list.domain and not has_ptr_record group by domain) is not null
-          then domain || ' has MX records [' || (select string_agg(rev_add, ', ') from mx_with_ptr_record_stats where domain = domain_list.domain and not has_ptr_record) || '] with no reverse DNS (PTR) entries.'
-        else 'All MX records has PTR records.'
+          then domain || ' MX records have no reverse DNS (PTR) entries: [' || (select string_agg(rev_add, ', ') from mx_with_ptr_record_stats where domain = domain_list.domain and not has_ptr_record) || '].'
+        else domain || ' has PTR records for all MX records.'
       end
         || ' A PTR record is reverse version of an A record. In general A record maps a domain name to an IP address, but PTR record maps IP address to a hostname. It is recommended to use PTR record when using both internal or external mail servers. It allows the receiving end to check the hostname of your IP address.' as "Result"
     from

@@ -739,7 +739,7 @@ control "dns_soa_ns_same_serial" {
 
 control "dns_soa_primary_ns_listed_at_parent" {
   title       = "Primary name server should be listed at parent"
-  description = "The primary name server is the name server declared in your SOA file and is usually the name server that reads your records from zone files and is responsible for distributing that data to your secondary name servers. This problem is present when this primary name server is not included in the parent referrals and is almost always accompanied by a Local Parent Mismatch problem."
+  description = "Primary name server is the name server declared in your SOA file and generally reads your records from zone files. It is responsible for distributing the data to secondary name servers. Unmatched NS records can cause delays when resolving domain records, as it tries to contact a name server that is either non-existent or non-authoritative."
 
   sql = <<-EOT
     with primary_ns_from_soa_record as (

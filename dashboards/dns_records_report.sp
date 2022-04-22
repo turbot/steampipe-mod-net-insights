@@ -237,13 +237,12 @@ query "dns_ns_record" {
 query "dns_soa_record" {
   sql = <<-EOQ
     select
-      target as "Primary Name Server:",
-      mbox as "	Responsible Email:",
-      serial as "Serial Number:",
-      refresh as "Refresh:",
-      retry as "Retry:",
-      expire as "Expire:",
-      min_ttl as "Default TTL:"
+      target as "Primary Name Server",
+      serial as "Serial Number",
+      refresh as "Refresh",
+      retry as "Retry",
+      expire as "Expire",
+      min_ttl as "Minimum TTL"
     from
       net_dns_record
     where

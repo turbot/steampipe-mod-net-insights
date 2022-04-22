@@ -739,7 +739,7 @@ control "dns_soa_ns_same_serial" {
 
 control "dns_soa_primary_ns_listed_at_parent" {
   title       = "Primary name server should be listed at parent"
-  description = "Primary name server is the name server declared in your SOA file and generally reads your records from zone files. It is responsible for distributing the data to secondary name servers. Unmatched NS records can cause delays when resolving domain records, as it tries to contact a name server that is either non-existent or non-authoritative."
+  description = "The primary name server is the name server declared in your SOA file and generally reads your records from zone files. It is responsible for distributing the data to secondary name servers. Unmatched NS records can cause delays when resolving domain records, as it tries to contact a name server that is either non-existent or non-authoritative."
 
   sql = <<-EOT
     with primary_ns_from_soa_record as (
@@ -786,7 +786,7 @@ control "dns_soa_primary_ns_listed_at_parent" {
 
 control "dns_soa_serial_check" {
   title       = "SOA serial number should be between 1 and 4294967295"
-  description = "SOA serial number is used as a version number for your DNS zone. For all name servers to be up to date with the current version of your zone, they must have the same SOA serial number. It is recommended that the format should be in YYYYMMDDnn format (per RFC1912 2.2)."
+  description = "The SOA serial number is used as a version number for your DNS zone. For all name servers to be up to date with the current version of your zone, they must have the same SOA serial number. It is recommended that the format should be in YYYYMMDDnn format (per RFC1912 2.2)."
 
   sql = <<-EOT
     select
@@ -931,7 +931,7 @@ benchmark "dns_mx_checks" {
 
 control "dns_mx_valid_hostname" {
   title       = "MX records should have valid hostname"
-  description = "It is recommended that MX record should have a valid domain or subdomain name and the name not starts or ends with a dot (.)."
+  description = "It is recommended that MX records should have a valid domain or subdomain name and the name not starts or ends with a dot (.)."
 
   sql = <<-EOT
     with domain_list as (

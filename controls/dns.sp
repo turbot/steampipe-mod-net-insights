@@ -76,7 +76,7 @@ control "dns_parent_ns_listed_at_parent" {
       select l.domain, d.domain as tld, d.target as parent_server from net_dns_record as d inner join domain_list as l on d.domain = l.tld where d.type = 'SOA'
     ),
     domain_parent_server_ip as (
-      select * from net_dns_record where domain in (select parent_server from domain_parent_server)
+      select domain, type, ip from net_dns_record where domain in (select parent_server from domain_parent_server)
     ),
     domain_parent_server_with_ip as (
       select domain_parent_server.domain, host(domain_parent_server_ip.ip) as ip_text from domain_parent_server inner join domain_parent_server_ip on domain_parent_server.parent_server = domain_parent_server_ip.domain where domain_parent_server_ip.type = 'A' order by domain_parent_server.domain
@@ -247,10 +247,10 @@ control "dns_ns_authoritative" {
       select distinct domain from net_dns_record where domain in (select jsonb_array_elements_text(to_jsonb($1::text[]))) order by domain
     ),
     domain_ns_records as (
-      select * from net_dns_record where domain in (select domain from domain_list order by domain) and type = 'NS' order by domain
+      select domain, target from net_dns_record where domain in (select domain from domain_list order by domain) and type = 'NS' order by domain
     ),
     ns_ips as (
-      select domain, ip, type, target, host(ip) as ip_text from net_dns_record where domain in (select target from domain_ns_records) and type = 'A' order by domain
+      select domain, ip, target, host(ip) as ip_text from net_dns_record where domain in (select target from domain_ns_records) and type = 'A' order by domain
     ),
     ns_with_authoritative_stats as (
       select
@@ -262,9 +262,7 @@ control "dns_ns_authoritative" {
       end as is_authoritative
     from
       domain_ns_records
-      left join ns_ips on domain_ns_records.target = ns_ips.domain and ns_ips.type = 'A' and ns_ips.ip is not null
-    where
-      domain_ns_records.type = 'NS'
+      left join ns_ips on domain_ns_records.target = ns_ips.domain and ns_ips.ip is not null
     order by domain_ns_records.target
     ),
     ns_non_authoritative as (
@@ -297,13 +295,13 @@ control "dns_ns_responded" {
 
   sql = <<-EOT
     with domain_ns_records as (
-      select * from net_dns_record where domain in (select jsonb_array_elements_text(to_jsonb($1::text[]))) and type = 'NS'
+      select domain, target from net_dns_record where domain in (select jsonb_array_elements_text(to_jsonb($1::text[]))) and type = 'NS'
     ),
     ns_ips as (
-      select * from net_dns_record where domain in (select target from domain_ns_records)
+      select domain, ip from net_dns_record where domain in (select target from domain_ns_records) and type = 'A'
     ),
     ns_with_ip as (
-      select domain_ns_records.domain, host(ns_ips.ip) as ip_text from domain_ns_records inner join ns_ips on domain_ns_records.target = ns_ips.domain where ns_ips.type = 'A' order by domain_ns_records.domain
+      select domain_ns_records.domain, host(ns_ips.ip) as ip_text from domain_ns_records inner join ns_ips on domain_ns_records.target = ns_ips.domain order by domain_ns_records.domain
     ),
     ns_individual_count as (
       select
@@ -317,7 +315,7 @@ control "dns_ns_responded" {
       group by d.domain
     ),
     ns_count as (
-      select domain, count(*) from net_dns_record where domain in (select jsonb_array_elements_text(to_jsonb($1::text[]))) and type = 'NS' group by domain
+      select domain, count(*) from domain_ns_records group by domain
     )
     select
       nc.domain as resource,
@@ -459,7 +457,7 @@ control "dns_ns_no_cname_with_other_record" {
       select distinct domain from net_dns_record where domain in (select jsonb_array_elements_text(to_jsonb($1::text[]))) order by domain
     ),
     domain_ns_records as (
-      select * from net_dns_record where domain in (select * from domain_list) and type = 'NS' order by domain
+      select domain, type, target from net_dns_record where domain in (select domain from domain_list) and type = 'NS' order by domain
     ),
     ns_ips as (
       select domain, ip, type, target, host(ip) as ip_text from net_dns_record where domain in (select target from domain_ns_records) and type = 'A' order by domain
@@ -468,7 +466,6 @@ control "dns_ns_no_cname_with_other_record" {
       select
         domain_ns_records.domain,
         domain_ns_records.target as name_server,
-        ns_ips.ip,
         host(ns_ips.ip) as ip_text
       from
         domain_ns_records
@@ -516,32 +513,36 @@ control "dns_ns_on_different_subnets" {
   description = "Having more than 1 name server in the same class C subnet is not recommended, as this increases the likelihood of a single failure disabling all of your name servers."
 
   sql = <<-EOT
-    with domain_records as (
+    with domain_ns_records as (
       select
-        *
+        domain,
+        type,
+        target
       from
         net_dns_record
       where
         domain in (select jsonb_array_elements_text(to_jsonb($1::text[])))
+        and type = 'NS'
     ),
     ns_ips as (
       select
-        *
+        domain,
+        type,
+        host(ip) as ip_text
       from
         net_dns_record
       where
-        domain in ( select target from domain_records where type = 'NS' )
+        domain in ( select target from domain_ns_records )
     ),
     check_ips as (
       select
-        distinct array_to_string(array_remove(string_to_array(text(ns_ips.ip), '.'), split_part(text(ns_ips.ip), '.', 4)), '.'),
-        domain_records.domain as domain
+        distinct array_to_string(array_remove(string_to_array(ns_ips.ip_text, '.'), split_part(ns_ips.ip_text, '.', 4)), '.'),
+        domain_ns_records.domain as domain
       from
-        domain_records
-        inner join ns_ips on domain_records.target = ns_ips.domain
+        domain_ns_records
+        inner join ns_ips on domain_ns_records.target = ns_ips.domain
       where
         ns_ips.type = 'A'
-        and domain_records.type = 'NS'
     )
     select
       domain as resource,
@@ -576,7 +577,7 @@ control "dns_ns_all_ip_public" {
       select domain, target from net_dns_record where domain in (select domain from domain_list) and type = 'NS' order by domain
     ),
     ns_ips as (
-      select * from net_dns_record where domain in (select target from domain_ns_records) and type = 'A'
+      select domain, ip from net_dns_record where domain in (select target from domain_ns_records) and type = 'A'
     ),
     ns_record_with_ip as (
       select
@@ -619,7 +620,9 @@ control "dns_ns_different_autonomous_systems" {
   sql = <<-EOT
     with domain_records as (
       select
-        *
+        domain,
+        type,
+        target
       from
         net_dns_record
       where
@@ -627,7 +630,9 @@ control "dns_ns_different_autonomous_systems" {
     ),
     ns_ips as (
       select
-        *
+        domain,
+        type,
+        host(ip) as ip_text
       from
         net_dns_record
       where
@@ -635,7 +640,7 @@ control "dns_ns_different_autonomous_systems" {
     ),
     check_ips as (
       select
-        distinct array_to_string(array_remove(string_to_array(text(ns_ips.ip), '.'), split_part(text(ns_ips.ip), '.', 4)), '.'),
+        distinct array_to_string(array_remove(string_to_array(ns_ips.ip_text, '.'), split_part(ns_ips.ip_text, '.', 4)), '.'),
         domain_records.domain as domain
       from
         domain_records
@@ -686,16 +691,19 @@ control "dns_soa_ns_same_serial" {
   description = "Sometimes serial numbers become out of sync when any record within a zone got updated and the changes are transferred from primary name server to other name servers. If the SOA serial number is not same for all NS records there might be a problem with the transfer."
 
   sql = <<-EOT
-    with domain_ns_records as (
-      select * from net_dns_record where domain in (select jsonb_array_elements_text(to_jsonb($1::text[]))) and type = 'NS' order by domain
+    with domain_list as (
+      select distinct domain from net_dns_record where domain in (select jsonb_array_elements_text(to_jsonb($1::text[])))
+    ),
+    domain_ns_records as (
+      select domain, target from net_dns_record where domain in (select domain from domain_list) and type = 'NS' order by domain
     ),
     ns_ips as (
-      select domain, ip, type, target, host(ip) as ip_text from net_dns_record where domain in (select target from domain_ns_records) and type = 'A' order by domain
+      select domain, type, target, host(ip) as ip_text from net_dns_record where domain in (select target from domain_ns_records) and type = 'A' order by domain
     ),
     ns_records_with_ips as (
       select
         domain_ns_records.domain,
-        host(ns_ips.ip) as ip_text
+        ns_ips.ip_text
       from
         domain_ns_records
         inner join ns_ips on domain_ns_records.target = ns_ips.domain
@@ -712,9 +720,6 @@ control "dns_soa_ns_same_serial" {
         inner join ns_records_with_ips as i on r.domain = i.domain and r.dns_server = i.ip_text
       where
         r.type = 'SOA'
-    ),
-    domain_list as (
-      select distinct domain from net_dns_record where domain in (select jsonb_array_elements_text(to_jsonb($1::text[])))
     )
     select
       d.domain as resource,
@@ -921,7 +926,7 @@ benchmark "dns_mx_checks" {
   children = [
     control.dns_mx_valid_hostname,
     control.dns_mx_all_ip_public,
-    //control.dns_mx_no_cname_with_other_record,
+    control.dns_mx_no_cname_with_other_record,
     control.dns_mx_not_contain_ip,
     control.dns_mx_at_least_two,
     control.dns_mx_no_duplicate_a_record,
@@ -972,7 +977,7 @@ control "dns_mx_all_ip_public" {
       select domain, target from net_dns_record where domain in (select domain from domain_list) and type = 'MX' order by domain
     ),
     mx_ips as (
-      select * from net_dns_record where domain in (select target from domain_mx_records) and type = 'A'
+      select domain, ip from net_dns_record where domain in (select target from domain_mx_records) and type = 'A'
     ),
     mx_record_with_ip as (
       select
@@ -1008,8 +1013,6 @@ control "dns_mx_all_ip_public" {
   }
 }
 
-// TODO: Re-enable once timeout issues are fixed
-/*
 control "dns_mx_no_cname_with_other_record" {
   title       = "MX records should not contain CNAME record if an NS (or any other) record is present"
   description = "A CNAME record is not allowed to coexist with any other data. This is often attempted by inexperienced administrators as an obvious way to allow your domain name to also be a host. However, DNS servers like BIND will see the CNAME and refuse to add any other resources for that name. Since no other records are allowed to coexist with a CNAME, the NS entries are ignored."
@@ -1019,7 +1022,7 @@ control "dns_mx_no_cname_with_other_record" {
       select distinct domain from net_dns_record where domain in (select jsonb_array_elements_text(to_jsonb($1::text[]))) order by domain
     ),
     domain_mx_records as (
-      select * from net_dns_record where domain in (select * from domain_list) and type = 'MX' order by domain
+      select domain, type, target from net_dns_record where domain in (select domain from domain_list) and type = 'MX' order by domain
     ),
     mx_ips as (
       select domain, ip, type, target, host(ip) as ip_text from net_dns_record where domain in (select target from domain_mx_records) and type = 'A' order by domain
@@ -1070,27 +1073,26 @@ control "dns_mx_no_cname_with_other_record" {
     default     = var.dns_domain_names
   }
 }
-*/
 
 control "dns_mx_not_contain_ip" {
   title       = "MX records should not contain IP address"
   description = "As per RFC 1035, an MX records must point to a host which itself can be resolved in the DNS. An IP address could not be used as it would be interpreted as an unqualified domain name, which cannot be resolved."
 
   sql = <<-EOT
-    with mx_record_with_ip as (
+    with domain_list as (
+      select distinct domain from net_dns_record where domain in (select jsonb_array_elements_text(to_jsonb($1::text[])))
+    ),
+    mx_record_with_ip as (
       select
         domain,
         count(*)
       from
         net_dns_record
       where
-        domain in (select jsonb_array_elements_text(to_jsonb($1::text[])))
+        domain in (select domain from domain_list)
         and type = 'MX'
         and (select target ~ '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')
       group by domain
-    ),
-    domain_list as (
-      select distinct domain from net_dns_record where domain in (select jsonb_array_elements_text(to_jsonb($1::text[])))
     )
     select
       d.domain as resource,
@@ -1125,7 +1127,7 @@ control "dns_mx_at_least_two" {
       select domain, target from net_dns_record where domain in (select domain from domain_list) and type = 'MX' order by domain
     ),
     mx_ips as (
-      select * from net_dns_record where domain in (select target from domain_mx_records) and type = 'A'
+      select domain, ip from net_dns_record where domain in (select target from domain_mx_records) and type = 'A'
     ),
     mx_record_with_ip as (
       select
@@ -1167,13 +1169,13 @@ control "dns_mx_no_duplicate_a_record" {
 
   sql = <<-EOT
     with domain_mx_records as (
-      select * from net_dns_record where domain in (select jsonb_array_elements_text(to_jsonb($1::text[]))) and type = 'MX'
+      select domain, target from net_dns_record where domain in (select jsonb_array_elements_text(to_jsonb($1::text[]))) and type = 'MX'
     ),
     mx_count_by_domain as (
       select domain, count(*) from domain_mx_records group by domain
     ),
     mx_ips as (
-      select * from net_dns_record where domain in (select target from domain_mx_records)
+      select domain, type, ip from net_dns_record where domain in (select target from domain_mx_records)
     ),
     mx_with_public_ips as (
       select
@@ -1222,7 +1224,7 @@ control "dns_mx_reverse_a_record" {
       select domain, target from net_dns_record where domain in (select domain from domain_list) and type = 'MX' order by domain
     ),
     mx_ips as (
-      select * from net_dns_record where domain in (select target from domain_mx_records) and type = 'A'
+      select domain, ip from net_dns_record where domain in (select target from domain_mx_records) and type = 'A'
     ),
     mx_record_with_ip as (
       select
@@ -1247,8 +1249,8 @@ control "dns_mx_reverse_a_record" {
             ) as reversed
           from (select string_to_array(host(ip), '.') as nums) as data
         ) as reverse
-        from
-          mx_record_with_ip
+      from
+        mx_record_with_ip
     ),
     mx_with_ptr_record_stats as (
       select

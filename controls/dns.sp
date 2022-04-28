@@ -5,35 +5,41 @@ variable "dns_domain_names" {
 }
 
 locals {
-  dns_checks_common_tags = {
-    plugin = "net"
-  }
+  dns_best_practices_common_tags = merge(local.net_insights_common_tags, {
+    service = "Net/DNS"
+  })
 }
 
-benchmark "dns_checks" {
+benchmark "dns_best_practices" {
   title         = "DNS Best Practices"
-  description   = "DNS best practices."
+  description   = "Best practices for your DNS records."
   documentation = file("./controls/docs/dns_overview.md")
-  tags          = local.dns_checks_common_tags
   children = [
-    benchmark.dns_parent_checks,
-    benchmark.dns_ns_checks,
-    benchmark.dns_soa_checks,
-    benchmark.dns_mx_checks,
-    benchmark.dns_www_checks
+    benchmark.dns_parent_best_practices,
+    benchmark.dns_ns_best_practices,
+    benchmark.dns_soa_best_practices,
+    benchmark.dns_mx_best_practices,
+    benchmark.dns_www_best_practices
   ]
+
+  tags = merge(local.dns_best_practices_common_tags, {
+    type = "Benchmark"
+  })
 }
 
-benchmark "dns_parent_checks" {
+benchmark "dns_parent_best_practices" {
   title         = "Parent Records"
-  description   = "Parent record checks."
+  description   = "Best practices for parent records."
   documentation = file("./controls/docs/dns_parent.md")
-  tags          = local.dns_checks_common_tags
   children = [
     control.dns_parent_records_found,
     control.dns_parent_ns_listed_at_parent,
     control.dns_parent_ns_all_with_type_a_record
   ]
+
+  tags = merge(local.dns_best_practices_common_tags, {
+    type = "Benchmark"
+  })
 }
 
 control "dns_parent_records_found" {
@@ -150,11 +156,10 @@ control "dns_parent_ns_all_with_type_a_record" {
   }
 }
 
-benchmark "dns_ns_checks" {
+benchmark "dns_ns_best_practices" {
   title         = "Name Server (NS) Records"
-  description   = "NS record checks."
+  description   = "Best practices for NS records."
   documentation = file("./controls/docs/dns_ns.md")
-  tags          = local.dns_checks_common_tags
   children = [
     control.dns_ns_name_valid,
     control.dns_ns_at_least_two,
@@ -167,6 +172,10 @@ benchmark "dns_ns_checks" {
     control.dns_ns_all_ip_public,
     control.dns_ns_different_autonomous_systems
   ]
+
+  tags = merge(local.dns_best_practices_common_tags, {
+    type = "Benchmark"
+  })
 }
 
 control "dns_ns_name_valid" {
@@ -670,11 +679,10 @@ control "dns_ns_different_autonomous_systems" {
   }
 }
 
-benchmark "dns_soa_checks" {
+benchmark "dns_soa_best_practices" {
   title         = "Start of Authority (SOA) Records"
-  description   = "SOA record checks."
+  description   = "Best practices for SOA records."
   documentation = file("./controls/docs/dns_soa.md")
-  tags          = local.dns_checks_common_tags
   children = [
     control.dns_soa_ns_same_serial,
     control.dns_soa_primary_ns_listed_at_parent,
@@ -684,6 +692,10 @@ benchmark "dns_soa_checks" {
     control.dns_soa_expire_value_check,
     control.dns_soa_minimum_value_check
   ]
+
+  tags = merge(local.dns_best_practices_common_tags, {
+    type = "Benchmark"
+  })
 }
 
 control "dns_soa_ns_same_serial" {
@@ -918,11 +930,10 @@ control "dns_soa_minimum_value_check" {
   }
 }
 
-benchmark "dns_mx_checks" {
+benchmark "dns_mx_best_practices" {
   title         = "Mail Exchange (MX) Records"
-  description   = "MX record checks."
+  description   = "Best practices for MX records."
   documentation = file("./controls/docs/dns_mx.md")
-  tags          = local.dns_checks_common_tags
   children = [
     control.dns_mx_valid_hostname,
     control.dns_mx_all_ip_public,
@@ -932,6 +943,10 @@ benchmark "dns_mx_checks" {
     control.dns_mx_no_duplicate_a_record,
     control.dns_mx_reverse_a_record
   ]
+
+  tags = merge(local.dns_best_practices_common_tags, {
+    type = "Benchmark"
+  })
 }
 
 control "dns_mx_valid_hostname" {
@@ -1287,14 +1302,17 @@ control "dns_mx_reverse_a_record" {
   }
 }
 
-benchmark "dns_www_checks" {
+benchmark "dns_www_best_practices" {
   title         = "WWW Records"
-  description   = "WWW record checks."
+  description   = "Best practices for WWW records."
   documentation = file("./controls/docs/dns_www.md")
-  tags          = local.dns_checks_common_tags
   children = [
     control.dns_www_all_ip_public
   ]
+
+  tags = merge(local.dns_best_practices_common_tags, {
+    type = "Benchmark"
+  })
 }
 
 control "dns_www_all_ip_public" {

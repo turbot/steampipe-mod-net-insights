@@ -1,3 +1,12 @@
+// Benchmarks and controls for specific services should override the "service" tag
+locals {
+  net_insights_common_tags = {
+    category = "Compliance"
+    plugin   = "net"
+    service  = "Net"
+  }
+}
+
 mod "net_insights" {
   # hub metadata
   title         = "Net Insights"

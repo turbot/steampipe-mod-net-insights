@@ -926,7 +926,7 @@ benchmark "dns_mx_checks" {
   children = [
     control.dns_mx_valid_hostname,
     control.dns_mx_all_ip_public,
-    control.dns_mx_no_cname_with_other_record,
+    //control.dns_mx_no_cname_with_other_record,
     control.dns_mx_not_contain_ip,
     control.dns_mx_at_least_two,
     control.dns_mx_no_duplicate_a_record,
@@ -1013,6 +1013,8 @@ control "dns_mx_all_ip_public" {
   }
 }
 
+// TODO: Re-enable once timeout issues are fixed
+/*
 control "dns_mx_no_cname_with_other_record" {
   title       = "MX records should not contain CNAME record if an NS (or any other) record is present"
   description = "A CNAME record is not allowed to coexist with any other data. This is often attempted by inexperienced administrators as an obvious way to allow your domain name to also be a host. However, DNS servers like BIND will see the CNAME and refuse to add any other resources for that name. Since no other records are allowed to coexist with a CNAME, the NS entries are ignored."
@@ -1073,6 +1075,7 @@ control "dns_mx_no_cname_with_other_record" {
     default     = var.dns_domain_names
   }
 }
+*/
 
 control "dns_mx_not_contain_ip" {
   title       = "MX records should not contain IP address"

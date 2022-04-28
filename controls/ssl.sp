@@ -13,10 +13,13 @@ benchmark "ssl_checks" {
     control.ssl_certificate_valid,
     control.ssl_certificate_not_expired,
     control.ssl_certificate_not_self_signed,
+    control.ssl_certificate_not_revoked,
     control.ssl_certificate_no_insecure_signature,
     control.ssl_certificate_rsa_2048,
     control.ssl_certificate_multiple_hostname,
-    control.ssl_certificate_use_complete_certificate_chain
+    control.ssl_certificate_use_complete_certificate_chain,
+    control.ssl_certificate_use_secure_protocol,
+    control.ssl_certificate_use_secure_cipher_suite
   ]
 }
 
@@ -106,6 +109,34 @@ control "ssl_certificate_not_self_signed" {
   }
 }
 
+control "ssl_certificate_not_revoked" {
+  title       = "SSL certificate should not be a revoked certificate"
+  description = ""
+
+  sql = <<-EOT
+    select
+      common_name as resource,
+      case
+        when is_revoked then 'alarm'
+        else 'ok'
+      end as status,
+      case
+        when is_revoked then common_name || ' certificate was revoked.'
+        else common_name || ' is not using any revoked certificate.'
+      end as reason
+    from
+      net_certificate
+    where
+      domain in (select jsonb_array_elements_text(to_jsonb($1::text[])))
+    order by common_name;
+  EOT
+
+  param "dns_domain_names" {
+    description = "DNS domain names."
+    default     = var.dns_domain_names
+  }
+}
+
 control "ssl_certificate_no_insecure_signature" {
   title       = "SSL certificate should not use insecure certificate algorithm (i.e. MD2, MD5, SHA1)"
   description = ""
@@ -164,10 +195,13 @@ control "ssl_certificate_multiple_hostname" {
     select
       common_name as resource,
       case
-        when jsonb_array_length(subject_alternative_names) > 1 then 'ok'
+        when jsonb_array_length(dns_names) > 1 then 'ok'
         else 'alarm'
       end as status,
-      common_name || ' has ' || jsonb_array_length(subject_alternative_names) || ' hostname(s).' as reason
+      case
+        when jsonb_array_length(dns_names) > 1 then common_name || ' has sufficient hostname coverage.'
+        else common_name || ' don''t have sufficient hostname coverage.'
+      end as reason
     from
       net_certificate
     where
@@ -193,6 +227,62 @@ control "ssl_certificate_use_complete_certificate_chain" {
         else 'alarm'
       end as status,
       common_name || ' has ' || jsonb_array_length(chain) || ' certificate(s) along with the server certificates.' as reason
+    from
+      net_certificate
+    where
+      domain in (select jsonb_array_elements_text(to_jsonb($1::text[])))
+    order by common_name;
+  EOT
+
+  param "dns_domain_names" {
+    description = "DNS domain names."
+    default     = var.dns_domain_names
+  }
+}
+
+control "ssl_certificate_use_secure_protocol" {
+  title       = "SSL certificate should use secure protocol (i.e. TLS v1.2 or TLS v1.3)"
+  description = ""
+
+  sql = <<-EOT
+    select
+      common_name as resource,
+      case
+        when protocol in ('TLS v1.2', 'TLS v1.3') then 'ok'
+        else 'alarm'
+      end as status,
+      case
+        when protocol in ('TLS v1.2', 'TLS v1.3') then common_name || ' using secure protocol.'
+        else common_name || ' not using a secure protocol.'
+      end as reason
+    from
+      net_certificate
+    where
+      domain in (select jsonb_array_elements_text(to_jsonb($1::text[])))
+    order by common_name;
+  EOT
+
+  param "dns_domain_names" {
+    description = "DNS domain names."
+    default     = var.dns_domain_names
+  }
+}
+
+control "ssl_certificate_use_secure_cipher_suite" {
+  title       = "SSL certificate should use secure cipher suites"
+  description = ""
+
+  sql = <<-EOT
+    select
+      common_name as resource,
+      case
+        when cipher_suite in ('TLS_RSA_WITH_RC4_128_SHA', 'TLS_RSA_WITH_3DES_EDE_CBC_SHA', 'TLS_RSA_WITH_AES_128_CBC_SHA256', 'TLS_ECDHE_ECDSA_WITH_RC4_128_SHA', 'TLS_ECDHE_RSA_WITH_RC4_128_SHA', 'TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA', 'TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256', 'TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256') then 'alarm'
+        else 'ok'
+      end as status,
+      case
+        when cipher_suite in ('TLS_RSA_WITH_RC4_128_SHA', 'TLS_RSA_WITH_3DES_EDE_CBC_SHA', 'TLS_RSA_WITH_AES_128_CBC_SHA256', 'TLS_ECDHE_ECDSA_WITH_RC4_128_SHA', 'TLS_ECDHE_RSA_WITH_RC4_128_SHA', 'TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA', 'TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256', 'TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256') then common_name || ' not using a secure cipher suite.'
+        else common_name || ' using a secure cipher suite.'
+      end as reason
     from
       net_certificate
     where

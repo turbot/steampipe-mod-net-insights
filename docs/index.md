@@ -1,30 +1,36 @@
-# Net Insights
+---
+repository: "https://github.com/turbot/steampipe-mod-net-insights"
+---
 
-20+ checks covering security best practices for DNS records.
+# Net Insights Mod
 
-![image](https://raw.githubusercontent.com/turbot/steampipe-mod-net-insights/dns-benchmark-release/docs/images/net_dns_checks_output.png)
+Run individual configuration, compliance and security controls to validate security best practices for DNS records.
+
+<img src="https://raw.githubusercontent.com/turbot/steampipe-mod-net-insights/dns-benchmark-release/docs/images/net_dns_checks_output.png" width="50%" type="thumbnail"/>
+
+## References
+
+[Net plugin](https://hub.steampipe.io/plugins/turbot/net) is a set of utility tables for steampipe to query attributes of X.509 certificates associated with websites, DNS records and connectivity to specific network socket addresses.
+
+[Steampipe](https://steampipe.io) is an open source CLI to instantly query cloud APIs using SQL.
+
+[Steampipe Mods](https://steampipe.io/docs/reference/mod-resources#mod) are collections of `named queries`, codified `controls` that can be used to test current configuration of your cloud resources against a desired configuration, and `dashboards` that organize and display key pieces of information.
+
+## Documentation
+
+- **[Benchmarks and controls →](https://hub.steampipe.io/mods/turbot/net_insights/controls)**
 
 ## Getting started
 
 ### Installation
 
-1. Download and install Steampipe (https://steampipe.io/downloads). Or use Brew:
-
-```shell
-brew tap turbot/tap
-brew install steampipe
-
-steampipe -v
-steampipe version 0.13.6
-```
-
-2. Install the Net plugin:
+1. Install the Net plugin:
 
 ```shell
 steampipe plugin install net
 ```
 
-3. Clone this repo:
+2. Clone this repo:
 
 ```sh
 git clone https://github.com/turbot/steampipe-mod-net-insights.git
@@ -73,6 +79,10 @@ Run a specific control:
 steampipe check control.dns_ns_name_valid
 ```
 
+### Credentials
+
+No credentials required.
+
 ### Configuration
 
 Several benchmarks have [input variables](https://steampipe.io/docs/using-steampipe/mod-variables) that can be configured to better match your environment and requirements. Each variable has a default defined in its source file, e.g., `controls/dns.sp`, but these can be overridden in several ways:
@@ -94,16 +104,7 @@ Several benchmarks have [input variables](https://steampipe.io/docs/using-steamp
 
 These are only some of the ways you can set variables. For a full list, please see [Passing Input Variables](https://steampipe.io/docs/using-steampipe/mod-variables#passing-input-variables).
 
-## Contributing
+## Get involved
 
-If you have an idea for additional compliance controls, or just want to help maintain and extend this mod ([or others](https://github.com/topics/steampipe-mod)) we would love you to join the community and start contributing. (Even if you just want to help with the docs.)
-
-- **[Join our Slack community →](https://steampipe.io/community/join)** and hang out with other Mod developers.
-- **[Mod developer guide →](https://steampipe.io/docs/using-steampipe/writing-controls)**
-
-Please see the [contribution guidelines](https://github.com/turbot/steampipe/blob/main/CONTRIBUTING.md) and our [code of conduct](https://github.com/turbot/steampipe/blob/main/CODE_OF_CONDUCT.md). All contributions are subject to the [Apache 2.0 open source license](https://github.com/turbot/steampipe-mod-net-insights/blob/main/LICENSE).
-
-`help wanted` issues:
-
-- [Steampipe](https://github.com/turbot/steampipe/labels/help%20wanted)
-- [Net Insights Mod](https://github.com/turbot/steampipe-mod-net-insights/labels/help%20wanted)
+- Contribute: [GitHub Repo](https://github.com/turbot/steampipe-mod-net-insights)
+- Community: [Slack Channel](https://steampipe.io/community/join)

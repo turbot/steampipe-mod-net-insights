@@ -12,4 +12,10 @@ mod "net_insights" {
     description  = "Run individual configuration, compliance and security controls for DNS records."
     image        = "/images/mods/turbot/net-insights-social-graphic.png"
   }
+
+  require {
+    plugin "net" {
+      version = "0.3.0"
+    }
+  }
 }

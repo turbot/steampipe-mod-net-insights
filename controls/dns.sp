@@ -682,7 +682,7 @@ benchmark "dns_soa_checks" {
     control.dns_soa_refresh_value_check,
     control.dns_soa_retry_value_check,
     control.dns_soa_expire_value_check,
-    control.dns_soa_min_ttl_value_check
+    control.dns_soa_minimum_value_check
   ]
 }
 
@@ -893,7 +893,7 @@ control "dns_soa_expire_value_check" {
   }
 }
 
-control "dns_soa_min_ttl_value_check" {
+control "dns_soa_minimum_value_check" {
   title       = "SOA minimum TTL value should be between 600 and 86400 seconds (10 minutes to 24 hours)"
   description = "Time To Live (TTL) is the sort of expiration date that is put on a DNS record. The TTL serves to tell the recursive server or local resolver how long it should keep said record in its cache. The longer the TTL, the longer the resolver holds that information in its cache. It is recommended that the value should be between 10 minutes and 24 hours."
 
@@ -901,10 +901,10 @@ control "dns_soa_min_ttl_value_check" {
     select
       domain as resource,
       case
-        when min_ttl < 600 or min_ttl > 86400 then 'alarm'
+        when minimum < 600 or minimum > 86400 then 'alarm'
         else 'ok'
       end as status,
-      domain || ' SOA minimum TTL value is ' || min_ttl || ' second(s).' as reason
+      domain || ' SOA minimum TTL value is ' || minimum || ' second(s).' as reason
     from
       net_dns_record
     where

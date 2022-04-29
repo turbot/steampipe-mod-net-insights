@@ -6,7 +6,7 @@ repository: "https://github.com/turbot/steampipe-mod-net-insights"
 
 Run individual configuration, compliance and security controls to validate security best practices for DNS records.
 
-<img src="https://raw.githubusercontent.com/turbot/steampipe-mod-net-insights/dns-benchmark-release/docs/images/net_dns_checks_output.png" width="50%" type="thumbnail"/>
+<img src="https://raw.githubusercontent.com/turbot/steampipe-mod-net-insights/main/docs/images/net_dns_best_practices_output.png" width="50%" type="thumbnail"/>
 
 ## References
 
@@ -62,7 +62,7 @@ steampipe query "select resource_name, title, description from steampipe_benchma
 Run an individual benchmark:
 
 ```shell
-steampipe check benchmark.dns_checks
+steampipe check benchmark.dns_best_practices
 ```
 
 #### Running controls
@@ -91,7 +91,7 @@ Several benchmarks have [input variables](https://steampipe.io/docs/using-steamp
 - Pass in a value on the command line:
 
   ```shell
-  steampipe check benchmark.dns_checks --var 'dns_domain_names=["github.com", "amazon.com"]'
+  steampipe check benchmark.dns_best_practices --var 'dns_domain_names=["github.com", "amazon.com"]'
   ```
 
 - Set an environment variable:

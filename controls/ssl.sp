@@ -1,14 +1,14 @@
 locals {
-  ssl_checks_common_tags = {
-    plugin = "net"
-  }
+  ssl_best_practices_common_tags = merge(local.net_insights_common_tags, {
+    service = "Net/SSL"
+  })
 }
 
-benchmark "ssl_checks" {
+benchmark "ssl_best_practices" {
   title       = "SSL Best Practices"
-  description = "SSL best practices."
-  #documentation = file("./controls/docs/dns_overview.md")
-  tags = local.ssl_checks_common_tags
+  description = "Best practices for your certificates."
+  #documentation = file("./controls/docs/ssl_overview.md")
+  
   children = [
     control.ssl_certificate_valid,
     control.ssl_certificate_not_expired,
@@ -21,6 +21,10 @@ benchmark "ssl_checks" {
     control.ssl_certificate_use_secure_protocol,
     control.ssl_certificate_use_secure_cipher_suite
   ]
+
+  tags = merge(local.ssl_best_practices_common_tags, {
+    type = "Benchmark"
+  })
 }
 
 

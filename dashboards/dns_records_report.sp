@@ -3,9 +3,9 @@ dashboard "dns_records_report" {
   title = "DNS Records Report"
 
   input "domain_name_input" {
-    title = "Select a domain:"
-    width = 4
-    type  = "text"
+    title       = "Enter a domain:"
+    width       = 4
+    type        = "text"
     placeholder = "example.com"
   }
 

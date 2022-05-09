@@ -17,6 +17,7 @@ benchmark "ssl_best_practices" {
     control.ssl_certificate_no_insecure_signature,
     control.ssl_certificate_secure_private_key,
     control.ssl_certificate_multiple_hostname,
+    control.ssl_certificate_caa_record_configured,
     control.ssl_certificate_use_complete_certificate_chain,
     control.ssl_certificate_use_secure_protocol,
     control.ssl_certificate_use_secure_cipher_suite,
@@ -211,6 +212,39 @@ control "ssl_certificate_multiple_hostname" {
     where
       domain in (select jsonb_array_elements_text(to_jsonb($1::text[])))
     order by common_name;
+  EOT
+
+  param "dns_domain_names" {
+    description = "DNS domain names."
+    default     = var.dns_domain_names
+  }
+}
+
+control "ssl_certificate_caa_record_configured" {
+  title       = "SSL server should have CAA record for your certificate to whitelist a CA"
+  description = "It is recommended to whitelist a CA by adding a CAA record for your certificate. Add CA's which you trust for issuing you a certificate."
+
+  sql = <<-EOT
+    with domain_list as (
+      select distinct domain from net_dns_record where domain in (select jsonb_array_elements_text(to_jsonb($1::text[]))) order by domain
+    ),
+    domain_with_caa_record as (
+      select distinct domain from net_dns_record where domain in (select jsonb_array_elements_text(to_jsonb($1::text[]))) and type = 'CAA'
+    )
+    select
+      domain_list.domain as resource,
+      case
+        when domain_with_caa_record.domain is not null then 'ok'
+        else 'alarm'
+      end as status,
+      case
+        when domain_with_caa_record.domain is not null then domain_list.domain || ' has CAA record.'
+        else domain_list.domain || ' don''t have a CAA record.'
+      end as reason
+    from
+      domain_list
+      left join domain_with_caa_record on domain_list.domain = domain_with_caa_record.domain
+    order by domain_list.domain;
   EOT
 
   param "dns_domain_names" {

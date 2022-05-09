@@ -671,10 +671,10 @@ query "dns_soa_report" {
     select
       'SOA minimum TTL value should be between 10 minutes to 24 hours' as "Recommendation",
       case
-        when min_ttl < 600 or min_ttl > 86400 then '❌'
+        when minimum < 600 or minimum > 86400 then '❌'
         else '✅'
       end as "Status",
-      'SOA Minimum TTL is: ' || min_ttl || '. This value was used to serve as a default TTL for records without a given TTL value and now is
+      'SOA Minimum TTL is: ' || minimum || '. This value was used to serve as a default TTL for records without a given TTL value and now is
         used for negative caching (indicates how long a resolver may cache the negative answer). RFC2308 recommends a value of 1-3 hours.' as "Result"
     from
       net_dns_record

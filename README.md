@@ -2,29 +2,30 @@
 
 20+ checks covering security best practices for DNS records.
 
+Run checks in a dashboard:
+![image](https://raw.githubusercontent.com/turbot/steampipe-mod-net-insights/main/docs/images/net_dns_records_report.png)
+
+Or in a terminal:
 ![image](https://raw.githubusercontent.com/turbot/steampipe-mod-net-insights/main/docs/images/net_dns_best_practices_output.png)
 
 ## Getting started
 
 ### Installation
 
-1. Download and install Steampipe (https://steampipe.io/downloads). Or use Brew:
+Download and install Steampipe (https://steampipe.io/downloads). Or use Brew:
 
-```shell
+```sh
 brew tap turbot/tap
 brew install steampipe
-
-steampipe -v
-steampipe version 0.13.6
 ```
 
-2. Install the Net plugin:
+Install the Net plugin with [Steampipe](https://steampipe.io):
 
-```shell
+```sh
 steampipe plugin install net
 ```
 
-3. Clone this repo:
+Clone:
 
 ```sh
 git clone https://github.com/turbot/steampipe-mod-net-insights.git
@@ -33,45 +34,43 @@ cd steampipe-mod-net-insights
 
 ### Usage
 
-#### Running benchmarks
+Start your dashboard server to get started:
 
-Preview running all benchmarks:
-
-```shell
-steampipe check all --dry-run
+```sh
+steampipe dashboard
 ```
+
+By default, the dashboard interface will then be launched in a new browser
+window at https://localhost:9194. From here, you can view dashboards and
+reports, and run benchmarks by selecting one or searching for a specific one.
+
+Instead of running benchmarks in a dashboard, you can also run them within your
+terminal with the `steampipe check` command:
 
 Run all benchmarks:
 
-```shell
+```sh
 steampipe check all
 ```
 
-Use Steampipe introspection to view all current benchmarks:
+Run a single benchmark:
 
-```shell
-steampipe query "select resource_name, title, description from steampipe_benchmark;"
-```
-
-Run an individual benchmark:
-
-```shell
+```sh
 steampipe check benchmark.dns_best_practices
-```
-
-#### Running controls
-
-Use Steampipe introspection to view all current controls:
-
-```shell
-steampipe query "select resource_name, title, description from steampipe_control;"
 ```
 
 Run a specific control:
 
-```shell
+```sh
 steampipe check control.dns_ns_name_valid
 ```
+
+Different output formats are also available, for more information please see
+[Output Formats](https://steampipe.io/docs/reference/cli/check#output-formats).
+
+### Credentials
+
+No credentials are required.
 
 ### Configuration
 
@@ -96,14 +95,13 @@ These are only some of the ways you can set variables. For a full list, please s
 
 ## Contributing
 
-If you have an idea for additional compliance controls, or just want to help maintain and extend this mod ([or others](https://github.com/topics/steampipe-mod)) we would love you to join the community and start contributing. (Even if you just want to help with the docs.)
+If you have an idea for additional dashboards or controls, or just want to help maintain and extend this mod ([or others](https://github.com/topics/steampipe-mod)) we would love you to join the community and start contributing.
 
 - **[Join our Slack community →](https://steampipe.io/community/join)** and hang out with other Mod developers.
-- **[Mod developer guide →](https://steampipe.io/docs/using-steampipe/writing-controls)**
 
 Please see the [contribution guidelines](https://github.com/turbot/steampipe/blob/main/CONTRIBUTING.md) and our [code of conduct](https://github.com/turbot/steampipe/blob/main/CODE_OF_CONDUCT.md). All contributions are subject to the [Apache 2.0 open source license](https://github.com/turbot/steampipe-mod-net-insights/blob/main/LICENSE).
 
-`help wanted` issues:
+Want to help but not sure where to start? Pick up one of the `help wanted` issues:
 
 - [Steampipe](https://github.com/turbot/steampipe/labels/help%20wanted)
 - [Net Insights Mod](https://github.com/turbot/steampipe-mod-net-insights/labels/help%20wanted)

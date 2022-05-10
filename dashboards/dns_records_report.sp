@@ -1,11 +1,23 @@
+locals {
+  dns_common_tags = {
+    service = "Net/DNS"
+  }
+}
+
 dashboard "dns_records_report" {
 
   title = "DNS Records Report"
+  documentation = file("./dashboards/docs/dns_records_report.md")
+
+  tags = merge(local.dns_common_tags, {
+    type     = "Report"
+    category = "Networking"
+  })
 
   input "domain_name_input" {
-    title = "Select a domain:"
-    width = 4
-    type  = "text"
+    title       = "Enter a domain:"
+    width       = 4
+    type        = "text"
     placeholder = "example.com"
   }
 

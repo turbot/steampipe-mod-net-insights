@@ -21,6 +21,7 @@ benchmark "ssl_best_practices" {
     control.ssl_certificate_use_complete_certificate_chain,
     control.ssl_certificate_use_secure_protocol,
     control.ssl_certificate_use_secure_cipher_suite,
+    control.ssl_certificate_use_perfect_forward_secrecy,
     control.ssl_certificate_use_strong_key_exchange
   ]
 
@@ -29,7 +30,6 @@ benchmark "ssl_best_practices" {
   })
 }
 
-# TODO: Control descriptions, docs
 control "ssl_certificate_valid" {
   title       = "SSL certificate should be valid"
   description = "It is recommended that the certificate is not being used before the time when the certificate is valid from."
@@ -320,6 +320,34 @@ control "ssl_certificate_use_secure_cipher_suite" {
       case
         when cipher_suite in ('TLS_RSA_WITH_RC4_128_SHA', 'TLS_RSA_WITH_3DES_EDE_CBC_SHA', 'TLS_RSA_WITH_AES_128_CBC_SHA256', 'TLS_ECDHE_ECDSA_WITH_RC4_128_SHA', 'TLS_ECDHE_RSA_WITH_RC4_128_SHA', 'TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA', 'TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256', 'TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256') then common_name || ' not using a secure cipher suite.'
         else common_name || ' using a secure cipher suite.'
+      end as reason
+    from
+      net_certificate
+    where
+      domain in (select jsonb_array_elements_text(to_jsonb($1::text[])))
+    order by common_name;
+  EOT
+
+  param "dns_domain_names" {
+    description = "DNS domain names."
+    default     = var.dns_domain_names
+  }
+}
+
+control "ssl_certificate_use_perfect_forward_secrecy" {
+  title       = "SSL certificate should use forward secrecy protocol"
+  description = "In cryptography, forward secrecy (FS), also known as perfect forward secrecy (PFS), is a feature of specific key agreement protocols that gives assurances that session keys will not be compromised even if long-term secrets used in the session key exchange are compromised."
+
+  sql = <<-EOT
+    select
+      common_name as resource,
+      case
+        when protocol = 'TLS v1.3' or cipher_suite like any (array['%ECDHE_RSA%', '%ECDHE_ECDSA%', '%DHE_RSA%', '%DHE_DSS%', '%CECPQ1%']) then 'ok'
+        else 'alarm'
+      end as status,
+      case
+        when protocol = 'TLS v1.3' or cipher_suite like any (array['%ECDHE_RSA%', '%ECDHE_ECDSA%', '%DHE_RSA%', '%DHE_DSS%', '%CECPQ1%']) then common_name || ' cipher suites provides forward secrecy.'
+        else common_name || ' cipher suites does not provide forward secrecy.'
       end as reason
     from
       net_certificate

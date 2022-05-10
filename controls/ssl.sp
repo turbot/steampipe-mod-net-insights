@@ -7,7 +7,7 @@ locals {
 benchmark "ssl_best_practices" {
   title       = "SSL Best Practices"
   description = "Best practices for your certificates."
-  #documentation = file("./controls/docs/ssl_overview.md")
+  documentation = file("./controls/docs/ssl_overview.md")
   
   children = [
     control.ssl_certificate_valid,
@@ -32,7 +32,7 @@ benchmark "ssl_best_practices" {
 # TODO: Control descriptions, docs
 control "ssl_certificate_valid" {
   title       = "SSL certificate should be valid"
-  description = ""
+  description = "It is recommended that the certificate is not being used before the time when the certificate is valid from."
 
   sql = <<-EOT
     select
@@ -60,7 +60,7 @@ control "ssl_certificate_valid" {
 
 control "ssl_certificate_not_expired" {
   title       = "SSL certificate should not be expired"
-  description = ""
+  description = "SSL certificates ensure secure connections between a server and other web entities and provide validation that a browser is indeed communicating with a validated website server. Once it expires, your website is no longer recognized on the web as safe and secure and it is vulnerable to cyber-attacks."
 
   sql = <<-EOT
     select
@@ -88,7 +88,7 @@ control "ssl_certificate_not_expired" {
 
 control "ssl_certificate_not_self_signed" {
   title       = "SSL certificate should not be self signed"
-  description = ""
+  description = "Self-signed certificates contain private and public keys within the same entity, and they cannot be revoked, thus making it difficult to detect security compromises. It is recommended not to use self-signed certificate since it encourage dangerous public browsing behavior."
 
   sql = <<-EOT
     select
@@ -116,7 +116,7 @@ control "ssl_certificate_not_self_signed" {
 
 control "ssl_certificate_not_revoked" {
   title       = "SSL certificate should not be a revoked certificate"
-  description = ""
+  description = "Check for certificate revocation on a server describes if the certificate being used has been revoked by the certificate authority before it was set to expire. It is recommended not to use revoked certificate since they are no longer trustworthy."
 
   sql = <<-EOT
     select
@@ -144,7 +144,7 @@ control "ssl_certificate_not_revoked" {
 
 control "ssl_certificate_no_insecure_signature" {
   title       = "SSL certificate should not use insecure certificate algorithm (i.e. MD2, MD5, SHA1)"
-  description = ""
+  description = "MD2 and MD5 are part of the Message Digest Algorithm family which was created to verify the integrity of any message or file that is hashed. It has been cryptographically broken which means they are vulnerable to collision attacks and hence considered insecure. Also SHA1 is considered cryptographically weak. It is recommended not to use these insecure signatures."
 
   sql = <<-EOT
     select
@@ -169,7 +169,7 @@ control "ssl_certificate_no_insecure_signature" {
 
 control "ssl_certificate_secure_private_key" {
   title       = "SSL certificate should use secure private keys (i.e. 2,048-bit RSA, 256-bit ECDSA)"
-  description = ""
+  description = "Private key is the single most important component of your SSL certificate that's used in the encryption/decryption of data sent between your server and the connecting clients. It is recommended to use secure private key algorithm (i.e. 2,048-bit RSA, 256-bit ECDSA) to make your website secure."
 
   sql = <<-EOT
     select
@@ -194,7 +194,7 @@ control "ssl_certificate_secure_private_key" {
 
 control "ssl_certificate_multiple_hostname" {
   title       = "SSL certificate should have sufficient hostname coverage"
-  description = ""
+  description = "It is recommended that your certificates cover all the names you wish to use with a site, since you cannot control how your users arrive at the site or how others link to it."
 
   sql = <<-EOT
     select
@@ -222,7 +222,7 @@ control "ssl_certificate_multiple_hostname" {
 
 control "ssl_certificate_caa_record_configured" {
   title       = "SSL server should have CAA record for your certificate to whitelist a CA"
-  description = "It is recommended to whitelist a CA by adding a CAA record for your certificate. Add CA's which you trust for issuing you a certificate."
+  description = "The CAA record is a type of DNS record used to provide additional confirmation for the Certification Authority (CA) when validating an SSL certificate. With CAA in place, the attack surface for fraudulent certificates is reduced, effectively making sites more secure."
 
   sql = <<-EOT
     with domain_list as (
@@ -255,7 +255,7 @@ control "ssl_certificate_caa_record_configured" {
 
 control "ssl_certificate_use_complete_certificate_chain" {
   title       = "SSL certificate should have 2 or more certificates in certificate chain"
-  description = ""
+  description = "An invalid certificate chain effectively renders the server certificate invalid and results in browser warnings. It is recommended to use two or more certificates to build a complete chain of trust."
 
   sql = <<-EOT
     select
@@ -280,7 +280,7 @@ control "ssl_certificate_use_complete_certificate_chain" {
 
 control "ssl_certificate_use_secure_protocol" {
   title       = "SSL certificate should use secure protocol (i.e. TLS v1.2 or TLS v1.3)"
-  description = ""
+  description = "It is recommended to use secure protocols (i.e. TLS v1.2 or TLS v1.3), since these versions offers modern authenticated encryption, improved latency and don't have obsolete features like cipher suites, compression etc. TLS v1.0 and TLS v1.1 are legacy protocol and shouldn't be used."
 
   sql = <<-EOT
     select
@@ -308,7 +308,7 @@ control "ssl_certificate_use_secure_protocol" {
 
 control "ssl_certificate_use_secure_cipher_suite" {
   title       = "SSL certificate should use secure cipher suites"
-  description = ""
+  description = "A cipher suite is a set of cryptographic algorithms. The set of algorithms that cipher suites usually contain include: a key exchange algorithm, a bulk encryption algorithm, and a message authentication code (MAC) algorithm. It is recommended to use secure ciphers like Authenticated Encryption with Associated Data (AEAD) cipher suites and Perfect Forward Secrecy (PFS) ciphers."
 
   sql = <<-EOT
     select
@@ -336,7 +336,7 @@ control "ssl_certificate_use_secure_cipher_suite" {
 
 control "ssl_certificate_use_strong_key_exchange" {
   title       = "SSL certificate should use strong key exchange (i.e. ECDHE)"
-  description = ""
+  description = "It is recommended to use strong key exchange mechanism to keep data being transferred across the network more secure. Both parties agree on a single cipher suite and generate the session keys (symmetric keys) to encrypt and decrypt the information during an SSL session."
 
   sql = <<-EOT
     select

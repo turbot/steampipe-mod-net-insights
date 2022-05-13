@@ -796,10 +796,12 @@ query "dns_mx_report" {
     select
       'MX records valid hostname' as "Recommendation",
       case
+        when (select count(*) from domain_mx_records) < 1 then '❌'
         when (select count(*) from mx_records where domain = domain_list.domain and not is_valid) > 0 then '❌'
         else '✅'
       end as "Status",
       case
+        when (select count(*) from domain_mx_records) < 1 then 'No MX records found.'
         when (select count(*) from mx_records where domain = domain_list.domain and not is_valid) > 0 then 'Invalid MX record hostname(s): ' || (select string_agg(target, ', ') from mx_records where domain = domain_list.domain and not is_valid) || '.'
         else 'No MX records have invalid hostname.'
       end
@@ -826,10 +828,12 @@ query "dns_mx_report" {
     select
       'MX IPs are public' as "Recommendation",
       case
+        when (select count(*) from domain_mx_records) < 1 then '❌'
         when mx_record_with_private_ip.domain is null then '✅'
         else '❌'
       end as "Status",
       case
+        when (select count(*) from domain_mx_records) < 1 then 'No MX records found.'
         when mx_record_with_private_ip.domain is null then 'All MX records appear to use public IPs.'
         else domain_list.domain || ' has MX records using private IPs [' || (select host(ip) from mx_record_with_ip where domain = domain_list.domain and is_private) || '].'
       end
@@ -841,10 +845,12 @@ query "dns_mx_report" {
     select
       'MX is not IP' as "Recommendation",
       case
+        when (select count(*) from domain_mx_records) < 1 then '❌'
         when i.domain is null then '✅'
         else '❌'
       end as "Status",
       case
+        when (select count(*) from domain_mx_records) < 1 then 'No MX records found.'
         when i.domain is null then 'MX records doesn''t contain IP address.'
         else 'At least one MX record contains IP address.'
       end
@@ -857,10 +863,12 @@ query "dns_mx_report" {
     select
       'No duplicate MX A records' as "Recommendation",
       case
+        when (select count(*) from domain_mx_records) < 1 then '❌'
         when p.domain is null then '✅'
         else '❌'
       end as "Status",
       case
+        when (select count(*) from domain_mx_records) < 1 then 'No MX records found.'
         when p.domain is null then 'MX records do not have duplicate IPs.'
         else 'MX records have duplicate IPs.'
       end
@@ -872,10 +880,12 @@ query "dns_mx_report" {
     select
       'Reverse MX A records' as "Recommendation",
       case
+        when (select count(*) from domain_mx_records) < 1 then '❌'
         when (select count(*) from mx_with_ptr_record_stats where domain = domain_list.domain and not has_ptr_record group by domain) is not null then '❌'
         else '✅'
       end as "Status",
       case
+        when (select count(*) from domain_mx_records) < 1 then 'No MX records found.'
         when (select count(*) from mx_with_ptr_record_stats where domain = domain_list.domain and not has_ptr_record group by domain) is not null
           then domain || ' MX records have no reverse DNS (PTR) entries: [' || (select string_agg(rev_add, ', ') from mx_with_ptr_record_stats where domain = domain_list.domain and not has_ptr_record) || '].'
         else domain || ' has PTR records for all MX records.'

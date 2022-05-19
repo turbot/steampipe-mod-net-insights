@@ -22,7 +22,8 @@ benchmark "ssl_best_practices" {
     control.ssl_certificate_use_secure_protocol,
     control.ssl_certificate_use_secure_cipher_suite,
     control.ssl_certificate_use_perfect_forward_secrecy,
-    control.ssl_certificate_use_strong_key_exchange
+    control.ssl_certificate_use_strong_key_exchange,
+    control.ssl_certificate_too_much_security
   ]
 
   tags = merge(local.ssl_best_practices_common_tags, {
@@ -378,12 +379,46 @@ control "ssl_certificate_use_strong_key_exchange" {
       common_name as resource,
       case
         when protocol = 'TLS v1.3' then 'ok'
-        when protocol = 'TLS v1.2' and split_part(cipher_suite, '_', 1) = 'ECDHE'  then 'ok'
+        when protocol = 'TLS v1.2' and split_part(cipher_suite, '_', 2) = 'ECDHE'  then 'ok'
         else 'alarm'
       end as status,
       case
-        when protocol = 'TLS v1.3' or (protocol = 'TLS v1.2' and split_part(cipher_suite, '_', 1) = 'ECDHE') then common_name || ' using a strong key exchange.'
+        when protocol = 'TLS v1.3' 
+          or (protocol = 'TLS v1.2' and split_part(cipher_suite, '_', 2) = 'ECDHE') then common_name || ' using a strong key exchange.'
         else common_name || ' not using a strong key exchange.'
+      end as reason
+    from
+      net_certificate
+    where
+      domain in (select jsonb_array_elements_text(to_jsonb($1::text[])))
+    order by common_name;
+  EOT
+
+  param "dns_domain_names" {
+    description = "DNS domain names."
+    default     = var.dns_domain_names
+  }
+}
+
+control "ssl_certificate_too_much_security" {
+  title       = "Too much security"
+  description = ""
+
+  sql = <<-EOT
+    select
+      common_name as resource,
+      case
+        when (public_key_algorithm = 'RSA' and public_key_length > 2048) then 'alarm'
+        when (public_key_algorithm = 'ECDSA' and public_key_length > 256) then 'alarm'
+        else 'ok'
+      end as status,
+      case
+        when (
+          (public_key_algorithm = 'RSA' and public_key_length > 2048)
+          or
+          (public_key_algorithm = 'ECDSA' and public_key_length > 256)
+        ) then common_name || ' is using too big keys.'
+        else common_name || ' is not using big keys.'
       end as reason
     from
       net_certificate

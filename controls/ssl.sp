@@ -339,14 +339,21 @@ control "ssl_certificate_use_perfect_forward_secrecy" {
   description = "In cryptography, forward secrecy (FS), also known as perfect forward secrecy (PFS), is a feature of specific key agreement protocols that gives assurances that session keys will not be compromised even if long-term secrets used in the session key exchange are compromised."
 
   sql = <<-EOT
+    with pfs_ciphersuites as (
+      -- TODO :: update this list to only include golang supported 
+      select (
+        "",
+        ""
+      )
+    )
     select
       common_name as resource,
       case
-        when protocol = 'TLS v1.3' or cipher_suite like any (array['%ECDHE_RSA%', '%ECDHE_ECDSA%', '%DHE_RSA%', '%DHE_DSS%', '%CECPQ1%']) then 'ok'
+        when protocol = 'TLS v1.3' or cipher_suite in (select * from pfs_ciphersuites) then 'ok'
         else 'alarm'
       end as status,
       case
-        when protocol = 'TLS v1.3' or cipher_suite like any (array['%ECDHE_RSA%', '%ECDHE_ECDSA%', '%DHE_RSA%', '%DHE_DSS%', '%CECPQ1%']) then common_name || ' cipher suites provides forward secrecy.'
+        when protocol = 'TLS v1.3' or cipher_suite in (select * from pfs_ciphersuites) then common_name || ' cipher suites provides forward secrecy.'
         else common_name || ' cipher suites does not provide forward secrecy.'
       end as reason
     from

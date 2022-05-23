@@ -22,7 +22,9 @@ benchmark "ssl_best_practices" {
     control.ssl_certificate_use_secure_protocol,
     control.ssl_certificate_use_secure_cipher_suite,
     control.ssl_certificate_use_perfect_forward_secrecy,
-    control.ssl_certificate_use_strong_key_exchange
+    control.ssl_certificate_use_strong_key_exchange,
+    #control.ssl_http_strict_transport_security_enabled,
+    #control.ssl_content_security_policy_enabled
   ]
 
   tags = merge(local.ssl_best_practices_common_tags, {
@@ -339,21 +341,40 @@ control "ssl_certificate_use_perfect_forward_secrecy" {
   description = "In cryptography, forward secrecy (FS), also known as perfect forward secrecy (PFS), is a feature of specific key agreement protocols that gives assurances that session keys will not be compromised even if long-term secrets used in the session key exchange are compromised."
 
   sql = <<-EOT
-    with pfs_ciphersuites as (
-      -- TODO :: update this list to only include golang supported 
-      select (
-        "",
-        ""
-      )
+    with pfs_cipher_suites as (
+      select * from (
+        values
+          ('TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256'),
+          ('TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384'),
+          ('TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA'),
+          ('TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA'),
+          ('TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256'),
+          ('TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256'),
+          ('TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384'),
+          ('TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA'),
+          ('TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA'),
+          ('TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256'),
+          -- Below cipher suites are not supported by golang package
+          -- since it returns an ID value of the cipher suite
+          ('0xc024'), -- TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
+          ('0xco28'), -- TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+          ('0x009e'), -- TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
+          ('0x009f'), -- TLS_DHE_RSA_WITH_AES_256_GCM_SHA384
+          ('0x0033'), -- TLS_DHE_RSA_WITH_AES_128_CBC_SHA
+          ('0x0039'), -- TLS_DHE_RSA_WITH_AES_256_CBC_SHA
+          ('0x0067'), -- TLS_DHE_RSA_WITH_AES_128_CBC_SHA256
+          ('0x006b') -- TLS_DHE_RSA_WITH_AES_256_CBC_SHA256
+      ) as a (cipher_suite)
     )
     select
       common_name as resource,
       case
-        when protocol = 'TLS v1.3' or cipher_suite in (select * from pfs_ciphersuites) then 'ok'
+        when protocol = 'TLS v1.3' then 'ok'
+        when cipher_suite in (select * from pfs_cipher_suites) then 'ok'
         else 'alarm'
       end as status,
       case
-        when protocol = 'TLS v1.3' or cipher_suite in (select * from pfs_ciphersuites) then common_name || ' cipher suites provides forward secrecy.'
+        when protocol = 'TLS v1.3' or cipher_suite in (select * from pfs_cipher_suites) then common_name || ' cipher suites provides forward secrecy.'
         else common_name || ' cipher suites does not provide forward secrecy.'
       end as reason
     from
@@ -397,3 +418,76 @@ control "ssl_certificate_use_strong_key_exchange" {
     default     = var.dns_domain_names
   }
 }
+
+# TODO:: The following checks required updated `net_web_request` table.
+# control "ssl_http_strict_transport_security_enabled" {
+#   title       = "Websites should have HTTP Strict Transport Security (HSTS) enabled"
+#   description = ""
+# 
+#   sql = <<-EOT
+#     with available_headers as (
+#       select
+#         url,
+#         array_agg(header.key)
+#       from
+#         net_web_request,
+#         jsonb_each(response_headers) as header
+#       where
+#         url in (select concat('https://', jsonb_array_elements_text(to_jsonb($1::text[]))))
+#       group by url
+#     )
+#     select
+#       url as resource,
+#       case
+#         when array['Strict-Transport-Security'] <@ array_agg then 'ok'
+#         else 'alarm'
+#       end as status,
+#       case
+#         when array['Strict-Transport-Security'] <@ array_agg then url || ' contains required headers ''Strict-Transport-Security''.'
+#         else url || ' has missing required headers ''Strict-Transport-Security''.'
+#       end as reason
+#     from
+#       available_headers;
+#   EOT
+# 
+#   param "dns_domain_names" {
+#     description = "DNS domain names."
+#     default     = var.dns_domain_names
+#   }
+# }
+# 
+# control "ssl_content_security_policy_enabled" {
+#   title       = "Websites should have Content Security Policy (CSP) enabled"
+#   description = ""
+# 
+#   sql = <<-EOT
+#     with available_headers as (
+#       select
+#         url,
+#         array_agg(header.key)
+#       from
+#         net_web_request,
+#         jsonb_each(response_headers) as header
+#       where
+#         url in (select concat('https://', jsonb_array_elements_text(to_jsonb($1::text[]))))
+#       group by url
+#     )
+#     select
+#       url as resource,
+#       case
+#         when array['Content-Security-Policy'] <@ array_agg then 'ok'
+#         else 'alarm'
+#       end as status,
+#       case
+#         when array['Content-Security-Policy'] <@ array_agg then url || ' contains required headers ''Content-Security-Policy''.'
+#         else url || ' has missing required headers ''Content-Security-Policy''.'
+#       end as reason
+#     from
+#       available_headers;
+#   EOT
+# 
+#   param "dns_domain_names" {
+#     description = "DNS domain names."
+#     default     = var.dns_domain_names
+#   }
+# }

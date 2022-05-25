@@ -5,14 +5,14 @@ locals {
 }
 
 benchmark "ssl_best_practices" {
-  title       = "SSL Best Practices"
+  title       = "SSL/TLS Best Practices"
   description = "Best practices for your certificates."
   documentation = file("./controls/docs/ssl_overview.md")
   
   children = [
     benchmark.ssl_certificate_best_practices,
     benchmark.ssl_configuration_best_practices,
-    control.ssl_certificate_too_much_security,
+    benchmark.ssl_configuration_vulnerabilities_check,
     #control.ssl_http_strict_transport_security_enabled,
     #control.ssl_content_security_policy_enabled
   ]
@@ -20,39 +20,6 @@ benchmark "ssl_best_practices" {
   tags = merge(local.ssl_best_practices_common_tags, {
     type = "Benchmark"
   })
-}
-
-control "ssl_certificate_too_much_security" {
-  title       = "Too much security"
-  description = "Using RSA keys stronger than 2,048 bits and ECDSA keys stronger than 256 bits is a waste of CPU power and might impair user experience."
-
-  sql = <<-EOT
-    select
-      common_name as resource,
-      case
-        when (public_key_algorithm = 'RSA' and public_key_length > 2048) then 'alarm'
-        when (public_key_algorithm = 'ECDSA' and public_key_length > 256) then 'alarm'
-        else 'ok'
-      end as status,
-      case
-        when (
-          (public_key_algorithm = 'RSA' and public_key_length > 2048)
-          or
-          (public_key_algorithm = 'ECDSA' and public_key_length > 256)
-        ) then common_name || ' is using too big keys.'
-        else common_name || ' is not using big keys.'
-      end as reason
-    from
-      net_certificate
-    where
-      domain in (select jsonb_array_elements_text(to_jsonb($1::text[])))
-    order by common_name;
-  EOT
-
-  param "dns_domain_names" {
-    description = "DNS domain names."
-    default     = var.dns_domain_names
-  }
 }
 
 # TODO:: The following checks required updated `net_web_request` table.

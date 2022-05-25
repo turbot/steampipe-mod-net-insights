@@ -9,12 +9,12 @@ benchmark "ssl_configuration_best_practices" {
     control.ssl_use_secure_cipher_suite,
     control.ssl_use_perfect_forward_secrecy,
     control.ssl_use_strong_key_exchange,
-    benchmark.ssl_configuration_vulnerabilities_check
+    control.ssl_certificate_avoid_too_much_security # TODO: Move this control to separate benchmark (i.e. Performance)
   ]
 }
 
 control "ssl_certificate_use_complete_certificate_chain" {
-  title       = "SSL certificate should have 2 or more certificates in certificate chain"
+  title       = "SSL/TLS certificates should have 2 or more certificates in certificate chain"
   description = "An invalid certificate chain effectively renders the server certificate invalid and results in browser warnings. It is recommended to use two or more certificates to build a complete chain of trust."
 
   sql = <<-EOT
@@ -39,7 +39,7 @@ control "ssl_certificate_use_complete_certificate_chain" {
 }
 
 control "ssl_use_secure_protocol" {
-  title       = "SSL server should use secure protocol (i.e. TLS v1.2 or TLS v1.3)"
+  title       = "SSL/TLS servers should use secure protocol (i.e. TLS v1.2 or TLS v1.3)"
   description = "It is recommended to use secure protocols (i.e. TLS v1.2 or TLS v1.3), since these versions offers modern authenticated encryption, improved latency and don't have obsolete features like cipher suites, compression etc. TLS v1.0 and TLS v1.1 are legacy protocol and shouldn't be used."
 
   sql = <<-EOT
@@ -67,7 +67,7 @@ control "ssl_use_secure_protocol" {
 }
 
 control "ssl_use_secure_cipher_suite" {
-  title       = "SSL server should use secure cipher suites"
+  title       = "SSL/TLS servers should use secure cipher suites"
   description = "A cipher suite is a set of cryptographic algorithms. The set of algorithms that cipher suites usually contain include: a key exchange algorithm, a bulk encryption algorithm, and a message authentication code (MAC) algorithm. It is recommended to use secure ciphers like Authenticated Encryption with Associated Data (AEAD) cipher suites and Perfect Forward Secrecy (PFS) ciphers."
 
   sql = <<-EOT
@@ -95,7 +95,7 @@ control "ssl_use_secure_cipher_suite" {
 }
 
 control "ssl_use_perfect_forward_secrecy" {
-  title       = "SSL server should use perfect forward secrecy (PFS) protocol"
+  title       = "SSL/TLS servers should use perfect forward secrecy (PFS) protocol"
   description = "In cryptography, forward secrecy (FS), also known as perfect forward secrecy (PFS), is a feature of specific key agreement protocols that gives assurances that session keys will not be compromised even if long-term secrets used in the session key exchange are compromised."
 
   sql = <<-EOT
@@ -149,7 +149,7 @@ control "ssl_use_perfect_forward_secrecy" {
 }
 
 control "ssl_use_strong_key_exchange" {
-  title       = "SSL server should use strong key exchange mechanism(i.e. ECDHE)"
+  title       = "SSL/TLS servers should use strong key exchange mechanism(i.e. ECDHE)"
   description = "It is recommended to use strong key exchange mechanism to keep data being transferred across the network more secure. Both parties agree on a single cipher suite and generate the session keys (symmetric keys) to encrypt and decrypt the information during an SSL session."
 
   sql = <<-EOT
@@ -164,6 +164,39 @@ control "ssl_use_strong_key_exchange" {
         when protocol = 'TLS v1.3' 
           or (protocol = 'TLS v1.2' and split_part(cipher_suite, '_', 2) = 'ECDHE') then common_name || ' using a strong key exchange.'
         else common_name || ' not using a strong key exchange.'
+      end as reason
+    from
+      net_certificate
+    where
+      domain in (select jsonb_array_elements_text(to_jsonb($1::text[])))
+    order by common_name;
+  EOT
+
+  param "dns_domain_names" {
+    description = "DNS domain names."
+    default     = var.dns_domain_names
+  }
+}
+
+control "ssl_certificate_avoid_too_much_security" {
+  title       = "SSL/TLS servers should avoid implementing too much security than actual requirement"
+  description = "Using RSA keys stronger than 2,048 bits and ECDSA keys stronger than 256 bits is a waste of CPU power and might impair user experience."
+
+  sql = <<-EOT
+    select
+      common_name as resource,
+      case
+        when (public_key_algorithm = 'RSA' and public_key_length > 2048) then 'alarm'
+        when (public_key_algorithm = 'ECDSA' and public_key_length > 256) then 'alarm'
+        else 'ok'
+      end as status,
+      case
+        when (
+          (public_key_algorithm = 'RSA' and public_key_length > 2048)
+          or
+          (public_key_algorithm = 'ECDSA' and public_key_length > 256)
+        ) then common_name || ' is using too big keys.'
+        else common_name || ' is not using big keys.'
       end as reason
     from
       net_certificate

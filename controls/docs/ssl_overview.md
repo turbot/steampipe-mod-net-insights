@@ -1,5 +1,11 @@
 ## Overview
 
-Secure Sockets Layer (SSL), is an encryption-based internet security protocol for establishing authenticated and encrypted links between networked computers.
+Secure Sockets Layer (SSL), is an encryption-based internet security protocol for establishing authenticated and encrypted links between networked computers. This protocol helps in transmission of data securely in a standards-based manner. It helps to establish a secure communication between the client and the server by allowing the use of digital signatures, mutual authentication and encryption.
 
-An SSL certificate (also known as a TLS or SSL/TLS certificate) is a digital document that binds the identity of a website to a cryptographic key pair consisting of a public key and a private key. The public key, included in the certificate, allows a web browser to initiate an encrypted communication session with a web server via the TLS and HTTPS protocols. The private key is kept secure on the server, and is used to digitally sign web pages and other documents.
+In this security benchmark, we perform various standard security checks on certificates and SSL server configuration for a given domain.
+
+This benchmark answers the following questions:
+
+- Is my certificate valid?
+- Is my SSL server configured properly?
+- Is my server vulnerable to any attack?

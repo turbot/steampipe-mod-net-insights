@@ -4,6 +4,7 @@ benchmark "ssl_certificate_best_practices" {
   documentation = file("./controls/docs/ssl_certificate_overview.md")
 
   children = [
+    control.ssl_certificate_domain_name_mismatch,
     control.ssl_certificate_valid,
     control.ssl_certificate_not_expired,
     control.ssl_certificate_not_self_signed,
@@ -12,12 +13,41 @@ benchmark "ssl_certificate_best_practices" {
     control.ssl_certificate_multiple_hostname,
     control.ssl_certificate_check_for_reliable_ca,
     control.ssl_certificate_no_insecure_signature,
+    control.ssl_certificate_transparent,
     control.ssl_certificate_caa_record_configured,
   ]
 
   tags = merge(local.ssl_best_practices_common_tags, {
     type = "Benchmark"
   })
+}
+
+control "ssl_certificate_domain_name_mismatch" {
+  title       = "Certificate common name should be listed in subject alternative name (SAN)"
+  description = "The common name or subject alternative name (SAN) of your SSL/TLS Certificate should match the domain or address bar in the browser."
+
+  sql = <<-EOT
+    select
+      common_name as resource,
+      case
+        when dns_names ? common_name or dns_names ? concat('*.', common_name) then 'ok'
+        else 'alarm'
+      end as status,
+      case
+        when dns_names ? common_name or dns_names ? concat('*.', common_name) then common_name || ' listed in certificate''s SAN.'
+        else common_name || ' not listed in certificate''s SAN.'
+      end as reason
+    from
+      net_certificate
+    where
+      domain in (select jsonb_array_elements_text(to_jsonb($1::text[])))
+    order by common_name;
+  EOT
+
+  param "dns_domain_names" {
+    description = "DNS domain names."
+    default     = var.dns_domain_names
+  }
 }
 
 control "ssl_certificate_valid" {
@@ -233,6 +263,35 @@ control "ssl_certificate_no_insecure_signature" {
         else 'ok'
       end as status,
       common_name || ' certificate using ' || signature_algorithm || ' signature algorithm.' as reason
+    from
+      net_certificate
+    where
+      domain in (select jsonb_array_elements_text(to_jsonb($1::text[])))
+    order by common_name;
+  EOT
+
+  param "dns_domain_names" {
+    description = "DNS domain names."
+    default     = var.dns_domain_names
+  }
+}
+
+control "ssl_certificate_transparent" {
+  title       = "Issuing certificates should be transparent"
+  description = "Certificate Transparency (CT) is an internet security standard for monitoring and auditing digital certificates. If a certificate authority issues an SSL certificate without adding it to the logs this can trigger certain browser errors. It is recommended that whenever issuing any certificate, add it to one or more public certificate transparency logs."
+
+  sql = <<-EOT
+    select
+      common_name as resource,
+      case
+        when transparent then 'ok'
+        else 'alarm'
+      end as status,
+      case
+        when transparent then common_name || ' is transparent.'
+        else common_name || ' is not transparent.'
+      end as reason,
+      transparent
     from
       net_certificate
     where

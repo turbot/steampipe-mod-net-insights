@@ -290,8 +290,7 @@ control "ssl_certificate_transparent" {
       case
         when transparent then common_name || ' is transparent.'
         else common_name || ' is not transparent.'
-      end as reason,
-      transparent
+      end as reason
     from
       net_certificate
     where

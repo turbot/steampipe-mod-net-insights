@@ -11,11 +11,15 @@ benchmark "ssl_configuration_best_practices" {
     control.ssl_use_strong_key_exchange,
     control.ssl_certificate_avoid_too_much_security # TODO: Move this control to separate benchmark (i.e. Performance)
   ]
+
+  tags = merge(local.ssl_best_practices_common_tags, {
+    type = "Benchmark"
+  })
 }
 
 control "ssl_certificate_use_complete_certificate_chain" {
-  title       = "SSL/TLS certificates should have 2 or more certificates in certificate chain"
-  description = "An invalid certificate chain effectively renders the server certificate invalid and results in browser warnings. It is recommended to use two or more certificates to build a complete chain of trust."
+  title       = "Certificates should have 2 or more intermediate certificates in certificate chain"
+  description = "An invalid certificate chain effectively renders the server certificate invalid and results in browser warnings. End-entity SSL/TLS certificates are generally signed by intermediate certificates rather than a CA’s root key. It is recommended to use two or more certificates to build a complete chain of trust."
 
   sql = <<-EOT
     select
@@ -40,7 +44,7 @@ control "ssl_certificate_use_complete_certificate_chain" {
 
 control "ssl_use_secure_protocol" {
   title       = "SSL/TLS servers should use secure protocol (i.e. TLS v1.2 or TLS v1.3)"
-  description = "It is recommended to use secure protocols (i.e. TLS v1.2 or TLS v1.3), since these versions offers modern authenticated encryption, improved latency and don't have obsolete features like cipher suites, compression etc. TLS v1.0 and TLS v1.1 are legacy protocol and shouldn't be used."
+  description = "There are six protocols in the SSL/TLS family: SSL v2, SSL v3, TLS v1.0, TLS v1.1, TLS v1.2, and TLS v1.3. It is recommended to use secure protocols (i.e. TLS v1.2 or TLS v1.3), since these versions offers modern authenticated encryption, improved latency and don't have obsolete features like cipher suites, compression etc. TLS v1.0 and TLS v1.1 are legacy protocol and shouldn't be used."
 
   sql = <<-EOT
     select
@@ -95,7 +99,7 @@ control "ssl_use_secure_cipher_suite" {
 }
 
 control "ssl_use_perfect_forward_secrecy" {
-  title       = "SSL/TLS servers should use perfect forward secrecy (PFS) protocol"
+  title       = "Ensure SSL/TLS servers uses perfect forward secrecy (PFS)"
   description = "In cryptography, forward secrecy (FS), also known as perfect forward secrecy (PFS), is a feature of specific key agreement protocols that gives assurances that session keys will not be compromised even if long-term secrets used in the session key exchange are compromised."
 
   sql = <<-EOT
@@ -179,7 +183,7 @@ control "ssl_use_strong_key_exchange" {
 }
 
 control "ssl_certificate_avoid_too_much_security" {
-  title       = "SSL/TLS servers should avoid implementing too much security than actual requirement"
+  title       = "Avoid implementing too much security than actual requirement"
   description = "Using RSA keys stronger than 2,048 bits and ECDSA keys stronger than 256 bits is a waste of CPU power and might impair user experience."
 
   sql = <<-EOT
@@ -195,8 +199,9 @@ control "ssl_certificate_avoid_too_much_security" {
           (public_key_algorithm = 'RSA' and public_key_length > 2048)
           or
           (public_key_algorithm = 'ECDSA' and public_key_length > 256)
-        ) then common_name || ' is using too big keys.'
-        else common_name || ' is not using big keys.'
+        )
+        then common_name || ' is using larger keys.'
+        else common_name || ' is not using larger keys.'
       end as reason
     from
       net_certificate

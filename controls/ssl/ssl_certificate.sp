@@ -13,7 +13,6 @@ benchmark "ssl_certificate_best_practices" {
     control.ssl_certificate_check_for_reliable_ca,
     control.ssl_certificate_no_insecure_signature,
     control.ssl_certificate_caa_record_configured,
-    control.ssl_certificate_use_complete_certificate_chain,
   ]
 
   tags = merge(local.ssl_best_practices_common_tags, {
@@ -22,7 +21,7 @@ benchmark "ssl_certificate_best_practices" {
 }
 
 control "ssl_certificate_valid" {
-  title       = "SSL/TLS certificates should be valid"
+  title       = "Certificates should be valid"
   description = "It is recommended that the certificate is not being used before the time when the certificate is valid from."
 
   sql = <<-EOT
@@ -50,7 +49,7 @@ control "ssl_certificate_valid" {
 }
 
 control "ssl_certificate_not_expired" {
-  title       = "SSL/TLS certificates should not be expired"
+  title       = "Certificates should not be expired"
   description = "SSL certificates ensure secure connections between a server and other web entities and provide validation that a browser is indeed communicating with a validated website server. Once it expires, your website is no longer recognized on the web as safe and secure and it is vulnerable to cyber-attacks."
 
   sql = <<-EOT
@@ -78,7 +77,7 @@ control "ssl_certificate_not_expired" {
 }
 
 control "ssl_certificate_not_self_signed" {
-  title       = "SSL/TLS certificates should not be self signed"
+  title       = "Self-signed certificate should not be used"
   description = "Self-signed certificates contain private and public keys within the same entity, and they cannot be revoked, thus making it difficult to detect security compromises. It is recommended not to use self-signed certificate since it encourage dangerous public browsing behavior."
 
   sql = <<-EOT
@@ -106,7 +105,7 @@ control "ssl_certificate_not_self_signed" {
 }
 
 control "ssl_certificate_not_revoked" {
-  title       = "SSL/TLS certificates should not be a revoked certificate"
+  title       = "Certificates should not be a revoked certificate"
   description = "Check for certificate revocation on a server describes if the certificate being used has been revoked by the certificate authority before it was set to expire. It is recommended not to use revoked certificate since they are no longer trustworthy."
 
   sql = <<-EOT
@@ -134,8 +133,8 @@ control "ssl_certificate_not_revoked" {
 }
 
 control "ssl_certificate_secure_private_key" {
-  title       = "SSL/TLS certificates should use secure private keys (i.e. 2,048-bit RSA, 256-bit ECDSA)"
-  description = "Private key is the single most important component of your SSL certificate that's used in the encryption/decryption of data sent between your server and the connecting clients. It is recommended to use secure private key algorithm (i.e. 2,048-bit RSA, 256-bit ECDSA) to make your website secure."
+  title       = "Use strong and secure private key (at least a 2,048-bit RSA or 256-bit ECDSA key)"
+  description = "Private key is the single most important component of your SSL certificate that's used in the encryption/decryption of data sent between your server and the connecting clients. Larger keys are harder to crack, but require more computing overhead. It is recommended to use secure private key algorithm (at least a 2,048-bit RSA or 256-bit ECDSA) to make your website secure."
 
   sql = <<-EOT
     select
@@ -159,8 +158,8 @@ control "ssl_certificate_secure_private_key" {
 }
 
 control "ssl_certificate_multiple_hostname" {
-  title       = "SSL/TLS certificates should have sufficient hostname coverage"
-  description = "It is recommended that your certificates cover all the names you wish to use with a site, since you cannot control how your users arrive at the site or how others link to it."
+  title       = "Ensure certificates have sufficient hostname coverage"
+  description = "It is recommended that your certificates cover all the names you wish to use with a site, since you cannot control how your users arrive at the site or how others link to it. Make sure you have added all the necessary domain names to certificate's Subject Alternative Name (SAN)."
 
   sql = <<-EOT
     select
@@ -223,7 +222,7 @@ control "ssl_certificate_check_for_reliable_ca" {
 }
 
 control "ssl_certificate_no_insecure_signature" {
-  title       = "SSL/TLS certificates should not use insecure certificate algorithm (i.e. MD2, MD5, SHA1)"
+  title       = "Certificates should not use insecure certificate algorithm (i.e. MD2, MD5, SHA1)"
   description = "MD2 and MD5 are part of the Message Digest Algorithm family which was created to verify the integrity of any message or file that is hashed. It has been cryptographically broken which means they are vulnerable to collision attacks and hence considered insecure. Also SHA1 is considered cryptographically weak. It is recommended not to use these insecure signatures."
 
   sql = <<-EOT
@@ -248,7 +247,7 @@ control "ssl_certificate_no_insecure_signature" {
 }
 
 control "ssl_certificate_caa_record_configured" {
-  title       = "SSL/TLS servers should have CAA record for your certificate to whitelist a CA"
+  title       = "Ensure domain has CAA record configured to whitelist a CA for issuing certificates"
   description = "The CAA record is a type of DNS record used to provide additional confirmation for the Certification Authority (CA) when validating an SSL certificate. With CAA in place, the attack surface for fraudulent certificates is reduced, effectively making sites more secure."
 
   sql = <<-EOT

@@ -262,7 +262,7 @@ control "ssl_certificate_no_insecure_signature" {
         when signature_algorithm like any (array['%SHA1%', '%MD2%', '%MD5%']) then 'alarm'
         else 'ok'
       end as status,
-      common_name || ' certificate using ' || signature_algorithm || ' signature algorithm.' as reason
+      common_name || ' using ' || signature_algorithm || ' signature algorithm.' as reason
     from
       net_certificate
     where
@@ -277,7 +277,7 @@ control "ssl_certificate_no_insecure_signature" {
 }
 
 control "ssl_certificate_transparent" {
-  title       = "Issuing certificates should be transparent"
+  title       = "Certificates should be visible in Certificate Transparency (CT) logs"
   description = "Certificate Transparency (CT) is an internet security standard for monitoring and auditing digital certificates. If a certificate authority issues an SSL certificate without adding it to the logs this can trigger certain browser errors. It is recommended that whenever issuing any certificate, add it to one or more public certificate transparency logs."
 
   sql = <<-EOT
@@ -288,8 +288,8 @@ control "ssl_certificate_transparent" {
         else 'alarm'
       end as status,
       case
-        when transparent then common_name || ' is transparent.'
-        else common_name || ' is not transparent.'
+        when transparent then common_name || ' certificate is visible.'
+        else common_name || ' certificate is not visible.'
       end as reason
     from
       net_certificate

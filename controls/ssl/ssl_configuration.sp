@@ -18,13 +18,14 @@ benchmark "ssl_configuration_best_practices" {
 }
 
 control "ssl_certificate_use_complete_certificate_chain" {
-  title       = "Certificates should have 2 or more intermediate certificates in certificate chain"
+  title       = "Certificates should have a complete chain of trusted certificates"
   description = "An invalid certificate chain effectively renders the server certificate invalid and results in browser warnings. End-entity SSL/TLS certificates are generally signed by intermediate certificates rather than a CA’s root key. It is recommended to use two or more certificates to build a complete chain of trust."
 
   sql = <<-EOT
     select
       common_name as resource,
       case
+        when chain @> '[{"is_certificate_authority": true}]' then 'ok'
         when jsonb_array_length(chain) >= 2 then 'ok'
         else 'alarm'
       end as status,
@@ -183,7 +184,7 @@ control "ssl_use_strong_key_exchange" {
 }
 
 control "ssl_certificate_avoid_too_much_security" {
-  title       = "Avoid implementing too much security than actual requirement"
+  title       = "Avoid implementing too much security"
   description = "Using RSA keys stronger than 2,048 bits and ECDSA keys stronger than 256 bits is a waste of CPU power and might impair user experience."
 
   sql = <<-EOT

@@ -40,8 +40,8 @@ control "ssl_certificate_use_complete_certificate_chain" {
 }
 
 control "ssl_certificate_avoid_too_much_security" {
-  title       = "Avoid implementing too much security"
-  description = "Using RSA keys stronger than 2,048 bits and ECDSA keys stronger than 256 bits is a waste of CPU power and might impair user experience."
+  title       = "Avoid implementing too much security for certificates"
+  description = "Using RSA keys stronger than 2048 bits and ECDSA keys stronger than 256 bits is a waste of CPU power and might impair user experience."
 
   sql = <<-EOT
     select

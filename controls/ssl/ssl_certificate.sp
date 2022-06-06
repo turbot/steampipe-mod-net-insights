@@ -23,7 +23,7 @@ benchmark "ssl_certificate_best_practices" {
 }
 
 control "ssl_certificate_domain_name_mismatch" {
-  title       = "Certificate common name should be listed in subject alternative name (SAN)"
+  title       = "Certificate common names should be listed in subject alternative name (SAN)"
   description = "The common name or subject alternative name (SAN) of your SSL/TLS Certificate should match the domain or address bar in the browser."
 
   sql = <<-EOT
@@ -107,7 +107,7 @@ control "ssl_certificate_not_expired" {
 }
 
 control "ssl_certificate_not_self_signed" {
-  title       = "Self-signed certificate should not be used"
+  title       = "Self-signed certificates should not be used"
   description = "Self-signed certificates contain private and public keys within the same entity, and they cannot be revoked, thus making it difficult to detect security compromises. It is recommended not to use self-signed certificate since it encourage dangerous public browsing behavior."
 
   sql = <<-EOT
@@ -135,7 +135,7 @@ control "ssl_certificate_not_self_signed" {
 }
 
 control "ssl_certificate_not_revoked" {
-  title       = "Certificates should not be a revoked certificate"
+  title       = "Certificates should not be revoked"
   description = "Check for certificate revocation on a server describes if the certificate being used has been revoked by the certificate authority before it was set to expire. It is recommended not to use revoked certificate since they are no longer trustworthy."
 
   sql = <<-EOT
@@ -163,8 +163,8 @@ control "ssl_certificate_not_revoked" {
 }
 
 control "ssl_certificate_secure_private_key" {
-  title       = "Use strong and secure private key (at least a 2,048-bit RSA or 256-bit ECDSA key)"
-  description = "Private key is the single most important component of your SSL certificate that's used in the encryption/decryption of data sent between your server and the connecting clients. Larger keys are harder to crack, but require more computing overhead. It is recommended to use secure private key algorithm (at least a 2,048-bit RSA or 256-bit ECDSA) to make your website secure."
+  title       = "Use strong and secure private key (at least a 2048-bit RSA or 256-bit ECDSA key)"
+  description = "Private key is the single most important component of your SSL certificate that's used in the encryption/decryption of data sent between your server and the connecting clients. Larger keys are harder to crack, but require more computing overhead. It is recommended to use secure private key algorithm (at least a 2048-bit RSA or 256-bit ECDSA) to make your website secure."
 
   sql = <<-EOT
     select
@@ -252,7 +252,7 @@ control "ssl_certificate_check_for_reliable_ca" {
 }
 
 control "ssl_certificate_no_insecure_signature" {
-  title       = "Certificates should not use insecure certificate algorithm (i.e. MD2, MD5, SHA1)"
+  title       = "Certificates should not use insecure certificate algorithm (e.g., MD2, MD5, SHA1)"
   description = "MD2 and MD5 are part of the Message Digest Algorithm family which was created to verify the integrity of any message or file that is hashed. It has been cryptographically broken which means they are vulnerable to collision attacks and hence considered insecure. Also SHA1 is considered cryptographically weak. It is recommended not to use these insecure signatures."
 
   sql = <<-EOT
@@ -305,7 +305,7 @@ control "ssl_certificate_transparent" {
 }
 
 control "ssl_certificate_caa_record_configured" {
-  title       = "Ensure domain has CAA record configured to whitelist a CA for issuing certificates"
+  title       = "Ensure domains have a CAA record configured to whitelist a CA for issuing certificates"
   description = "The CAA record is a type of DNS record used to provide additional confirmation for the Certification Authority (CA) when validating an SSL certificate. With CAA in place, the attack surface for fraudulent certificates is reduced, effectively making sites more secure."
 
   sql = <<-EOT

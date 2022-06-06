@@ -5,6 +5,6 @@ An SSL certificate (also known as a TLS or SSL/TLS certificate) is a digital doc
 This benchmark performs various standard checks on your domain certificates, for example:
 
 - Is my certificate valid?
-- Is my certificate expired (or expires soon)?
+- Is my certificate expired (or expiring soon)?
 - Is my certificate revoked by the certificate authority (CA)?
 - Is my certificate using any insecure key?

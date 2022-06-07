@@ -142,11 +142,11 @@ control "ssl_certificate_not_revoked" {
     select
       common_name as resource,
       case
-        when is_revoked then 'alarm'
+        when revoked then 'alarm'
         else 'ok'
       end as status,
       case
-        when is_revoked then common_name || ' certificate was revoked.'
+        when revoked then common_name || ' certificate was revoked.'
         else common_name || ' is not using any revoked certificate.'
       end as reason
     from
@@ -227,7 +227,7 @@ control "ssl_certificate_check_for_reliable_ca" {
           when crl_distribution_points is null then 0
           else jsonb_array_length(crl_distribution_points)
         end as crl_count,
-        jsonb_array_length(ocsp_server) as ocsp_count
+        jsonb_array_length(ocsp_servers) as ocsp_count
       from
         net_certificate
       where

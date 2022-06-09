@@ -7,7 +7,7 @@ locals {
 benchmark "ssl_best_practices" {
   title         = "SSL/TLS Best Practices"
   description   = "Best practices for your certificates and server configurations."
-  documentation = file("./controls/docs/ssl/ssl_overview.md")
+  documentation = file("./controls/docs/ssl_overview.md")
 
   children = [
     benchmark.ssl_certificate_best_practices,

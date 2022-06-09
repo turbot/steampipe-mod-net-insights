@@ -1,7 +1,7 @@
 benchmark "ssl_configuration_best_practices" {
   title         = "SSL/TLS Server Configuration Best Practices"
   description   = "Best practices for your SSL and TLS deployment."
-  documentation = file("./controls/docs/ssl/ssl_configuration_overview.md")
+  documentation = file("./controls/docs/ssl_configuration_overview.md")
 
   children = [
     control.ssl_certificate_use_complete_certificate_chain,

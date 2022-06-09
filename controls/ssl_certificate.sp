@@ -1,7 +1,7 @@
 benchmark "ssl_certificate_best_practices" {
   title         = "SSL/TLS Certificate Best Practices"
   description   = "Best practices for your domain certificates."
-  documentation = file("./controls/docs/ssl/ssl_certificate_overview.md")
+  documentation = file("./controls/docs/ssl_certificate_overview.md")
 
   children = [
     control.ssl_certificate_domain_name_mismatch,

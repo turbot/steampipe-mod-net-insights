@@ -91,7 +91,7 @@ control "ssl_certificate_not_expired" {
       end as status,
       case
         when now() > not_after then common_name || ' is expired.'
-        else common_name || ' is yet to expire in ' || date_trunc('day', age(not_after, now())) || '.'
+        else common_name || ' expires in ' || date_trunc('day', age(not_after, now())) || '.'
       end as reason
     from
       net_certificate
@@ -147,7 +147,7 @@ control "ssl_certificate_not_revoked" {
       end as status,
       case
         when revoked then common_name || ' certificate was revoked.'
-        else common_name || ' is not using any revoked certificate.'
+        else common_name || ' certificate is not revoked.'
       end as reason
     from
       net_certificate
@@ -173,7 +173,7 @@ control "ssl_certificate_secure_private_key" {
         when (public_key_algorithm = 'RSA' and public_key_length = 2048) or (public_key_algorithm = 'ECDSA' and public_key_length = 256) then 'ok'
         else 'alarm'
       end as status,
-      common_name || ' using ' || public_key_length || '-bit ' || public_key_algorithm || ' key.' as reason
+      common_name || ' uses ' || public_key_length || '-bit ' || public_key_algorithm || ' key.' as reason
     from
       net_certificate
     where
@@ -221,9 +221,9 @@ control "ssl_certificate_check_for_reliable_ca" {
 
   sql = <<-EOT
     with revocation_info as (
-      select 
+      select
         common_name,
-        case 
+        case
           when crl_distribution_points is null then 0
           else jsonb_array_length(crl_distribution_points)
         end as crl_count,
@@ -240,7 +240,7 @@ control "ssl_certificate_check_for_reliable_ca" {
         when (crl_count > 0 and ocsp_count > 0) then 'ok'
         else 'alarm'
       end as status,
-      (common_name || ' has ' || ocsp_count || ' OCSP endpoint(s) and ' || crl_count || ' CRL endpoint(s)') as reason
+      (common_name || ' has ' || ocsp_count || ' OCSP endpoint(s) and ' || crl_count || ' CRL endpoint(s).') as reason
     from
       revocation_info;
   EOT
@@ -262,7 +262,7 @@ control "ssl_certificate_no_insecure_signature" {
         when signature_algorithm like any (array['%SHA1%', '%MD2%', '%MD5%']) then 'alarm'
         else 'ok'
       end as status,
-      common_name || ' using ' || signature_algorithm || ' signature algorithm.' as reason
+      common_name || ' uses ' || signature_algorithm || ' signature algorithm.' as reason
     from
       net_certificate
     where
@@ -323,7 +323,7 @@ control "ssl_certificate_caa_record_configured" {
       end as status,
       case
         when domain_with_caa_record.domain is not null then domain_list.domain || ' has CAA record.'
-        else domain_list.domain || ' don''t have a CAA record.'
+        else domain_list.domain || ' does not have a CAA record.'
       end as reason
     from
       domain_list

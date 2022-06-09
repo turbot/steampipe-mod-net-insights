@@ -1,3 +1,10 @@
+## v0.3 [2022-06-09]
+
+_What's new?_
+
+- Added SSL/TLS Certificate Best Practices benchmark (`steampipe check benchmark.ssl_certificate_best_practices`) ([#8](https://github.com/turbot/steampipe-mod-net-insights/pull/8))
+- Added SSL/TLS Server Configuration Best Practices benchmark (`steampipe check benchmark.ssl_configuration_best_practices`) ([#10](https://github.com/turbot/steampipe-mod-net-insights/pull/10))
+
 ## v0.2 [2022-05-09]
 
 _What's new?_

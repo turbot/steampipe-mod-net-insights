@@ -1119,8 +1119,8 @@ control "dns_mx_not_contain_ip" {
         else 'alarm'
       end as status,
       case
-        when i.domain is null then d.domain || ' MX records doesn''t contain IP address.'
-        else 'At least 1 MX record in ' || d.domain || ' contain IP address.'
+        when i.domain is null then d.domain || ' MX records do not contain IP addresses.'
+        else 'At least 1 MX record in ' || d.domain || ' contains an IP address.'
       end as reason
     from
       domain_list as d

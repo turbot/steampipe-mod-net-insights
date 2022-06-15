@@ -14,8 +14,8 @@ dashboard "ssl_certificate_report" {
     category = "Networking"
   })
 
-  input "domain_name_input" {
-    title       = "Enter a domain:"
+  input "hostname_input" {
+    title       = "Enter a hostname:"
     width       = 4
     type        = "text"
     placeholder = "example.com"
@@ -33,7 +33,7 @@ dashboard "ssl_certificate_report" {
         type  = "line"
         query = query.ssl_certificate_record
         args  = {
-          domain_name_input = self.input.domain_name_input.value
+          hostname_input = self.input.hostname_input.value
         }
 
         column "Alternative Names" {
@@ -49,7 +49,7 @@ dashboard "ssl_certificate_report" {
       table {
         query = query.ssl_certificate_report
         args  = {
-          domain_name_input = self.input.domain_name_input.value
+          hostname_input = self.input.hostname_input.value
         }
 
         column "Result" {
@@ -74,7 +74,7 @@ dashboard "ssl_certificate_report" {
         #type  = "line"
         query = query.ssl_additional_certificate_record
         args  = {
-          domain_name_input = self.input.domain_name_input.value
+          hostname_input = self.input.hostname_input.value
         }
       }
     }
@@ -107,7 +107,7 @@ query "ssl_certificate_record" {
       domain = $1;
   EOQ
 
-  param "domain_name_input" {}
+  param "hostname_input" {}
 }
 
 query "ssl_additional_certificate_record" {
@@ -126,7 +126,7 @@ query "ssl_additional_certificate_record" {
       domain = $1;
   EOQ
 
-  param "domain_name_input" {}
+  param "hostname_input" {}
 }
 
 query "ssl_certificate_report" {
@@ -223,5 +223,5 @@ query "ssl_certificate_report" {
     domain_list
   EOQ
 
-  param "domain_name_input" {}
+  param "hostname_input" {}
 }

@@ -7,8 +7,8 @@ dashboard "ssl_configuration_report" {
     category = "Networking"
   })
 
-  input "domain_name_input" {
-    title       = "Enter a domain:"
+  input "hostname_input" {
+    title       = "Enter a hostname:"
     width       = 4
     type        = "text"
     placeholder = "example.com"
@@ -24,7 +24,7 @@ dashboard "ssl_configuration_report" {
       width = 3
       query = query.ssl_server_supported_protocols
       args  = {
-        domain_name_input = self.input.domain_name_input.value
+        hostname_input = self.input.hostname_input.value
       }
     }
 
@@ -33,7 +33,7 @@ dashboard "ssl_configuration_report" {
       width = 3
       query = query.ssl_server_insecure_cipher_count
       args  = {
-        domain_name_input = self.input.domain_name_input.value
+        hostname_input = self.input.hostname_input.value
       }
     }
 
@@ -42,7 +42,7 @@ dashboard "ssl_configuration_report" {
       width = 3
       query = query.ssl_server_rc4_cipher_count
       args  = {
-        domain_name_input = self.input.domain_name_input.value
+        hostname_input = self.input.hostname_input.value
       }
     }
 
@@ -51,7 +51,7 @@ dashboard "ssl_configuration_report" {
       width = 3
       query = query.ssl_server_cbc_cipher_count
       args  = {
-        domain_name_input = self.input.domain_name_input.value
+        hostname_input = self.input.hostname_input.value
       }
     }
   }
@@ -75,7 +75,7 @@ dashboard "ssl_configuration_report" {
       width = 6
       query = query.ssl_server_configuration_checks
         args  = {
-        domain_name_input = self.input.domain_name_input.value
+        hostname_input = self.input.hostname_input.value
       }
 
       column "Recommendation" {
@@ -109,7 +109,7 @@ query "ssl_server_supported_protocols" {
       supported_protocols
   EOQ
 
-  param "domain_name_input" {}
+  param "hostname_input" {}
 }
 
 query "ssl_server_insecure_cipher_count" {
@@ -143,7 +143,7 @@ query "ssl_server_insecure_cipher_count" {
       left join insecure_cipher_count as i on d.address = i.address
   EOQ
 
-  param "domain_name_input" {}
+  param "hostname_input" {}
 }
 
 query "ssl_server_rc4_cipher_count" {
@@ -180,7 +180,7 @@ query "ssl_server_rc4_cipher_count" {
       left join rc4_cipher_count as i on d.address = i.address
   EOQ
 
-  param "domain_name_input" {}
+  param "hostname_input" {}
 }
 
 query "ssl_server_cbc_cipher_count" {
@@ -217,7 +217,7 @@ query "ssl_server_cbc_cipher_count" {
       left join cbc_cipher_count as i on d.address = i.address
   EOQ
 
-  param "domain_name_input" {}
+  param "hostname_input" {}
 }
 
 query "ssl_server_supported_cipher_suites" {
@@ -301,6 +301,19 @@ query "ssl_server_configuration_checks" {
       group by address
     )
     select
+      'Use complete chain of trusted certificates' as "Recommendation",
+      case
+        when chain @> '[{"is_certificate_authority": true}]' then '✅'
+        when jsonb_array_length(chain) >= 2 then '✅'
+        else '❌'
+      end as "Status",
+      common_name || ' has ' || jsonb_array_length(chain) || ' certificate(s) along with the server certificates. An invalid certificate chain effectively renders the server certificate invalid and results in browser warnings. End-entity SSL/TLS certificates are generally signed by intermediate certificates rather than a CA’s root key. It is recommended to use two or more certificates to build a complete chain of trust.' as "Result"
+    from
+      net_certificate
+    where
+      domain = $1
+    UNION
+    select
       'Use secure protocols' as "Recommendation",
       case
         when i.address is null or i.count < 1 then '✅'
@@ -378,5 +391,5 @@ query "ssl_server_configuration_checks" {
         left join check_rc4_cipher as i on d.address = i.address
   EOQ
 
-  param "domain_name_input" {}
+  param "hostname_input" {}
 }

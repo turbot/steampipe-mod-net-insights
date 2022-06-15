@@ -1,15 +1,17 @@
 # This is created to check the dashboard with combined details of certificates and server configuration
 dashboard "ssl_report" {
 
-  title = "SSL Report"
+  title         = "SSL Report"
+  documentation = file("./dashboards/docs/ssl_report.md")
 
   tags = merge(local.ssl_common_tags, {
     type     = "Report"
     category = "Networking"
   })
 
-  input "domain_name_input" {
-    title       = "Enter a domain:"
+  # Input
+  input "hostname_input" {
+    title       = "Enter a hostname:"
     width       = 4
     type        = "text"
     placeholder = "example.com"
@@ -25,7 +27,7 @@ dashboard "ssl_report" {
       width = 3
       query = query.ssl_server_supported_protocols
       args  = {
-        domain_name_input = self.input.domain_name_input.value
+        hostname_input = self.input.hostname_input.value
       }
     }
 
@@ -34,7 +36,7 @@ dashboard "ssl_report" {
       width = 3
       query = query.ssl_server_insecure_cipher_count
       args  = {
-        domain_name_input = self.input.domain_name_input.value
+        hostname_input = self.input.hostname_input.value
       }
     }
 
@@ -43,7 +45,7 @@ dashboard "ssl_report" {
       width = 3
       query = query.ssl_server_rc4_cipher_count
       args  = {
-        domain_name_input = self.input.domain_name_input.value
+        hostname_input = self.input.hostname_input.value
       }
     }
 
@@ -52,12 +54,12 @@ dashboard "ssl_report" {
       width = 3
       query = query.ssl_server_cbc_cipher_count
       args  = {
-        domain_name_input = self.input.domain_name_input.value
+        hostname_input = self.input.hostname_input.value
       }
     }
   }
 
-  # Server Certificate
+  # Certificate
   container {
 
     title = "Server Key and Certificate"
@@ -69,7 +71,7 @@ dashboard "ssl_report" {
         type  = "line"
         query = query.ssl_certificate_record
         args  = {
-          domain_name_input = self.input.domain_name_input.value
+          hostname_input = self.input.hostname_input.value
         }
 
         column "Alternative Names" {
@@ -85,7 +87,7 @@ dashboard "ssl_report" {
       table {
         query = query.ssl_certificate_report
         args  = {
-          domain_name_input = self.input.domain_name_input.value
+          hostname_input = self.input.hostname_input.value
         }
 
         column "Result" {
@@ -110,12 +112,11 @@ dashboard "ssl_report" {
         #type  = "line"
         query = query.ssl_additional_certificate_record
         args  = {
-          domain_name_input = self.input.domain_name_input.value
+          hostname_input = self.input.hostname_input.value
         }
       }
     }
   }
-
 
   # Protocols and Cipher Suites
   container {
@@ -136,7 +137,7 @@ dashboard "ssl_report" {
       width = 6
       query = query.ssl_server_configuration_checks
         args  = {
-        domain_name_input = self.input.domain_name_input.value
+        hostname_input = self.input.hostname_input.value
       }
 
       column "Recommendation" {

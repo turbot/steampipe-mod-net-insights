@@ -1,6 +1,7 @@
 dashboard "ssl_configuration_report" {
 
-  title = "SSL/TLS Server Configuration Report"
+  title         = "SSL/TLS Server Configuration Report"
+  documentation = file("./dashboards/docs/ssl_server_configuration_report.md")
 
   tags = merge(local.ssl_common_tags, {
     type     = "Report"
@@ -159,6 +160,7 @@ query "ssl_server_rc4_cipher_count" {
         net_tls_connection
       where
         address in (select address from domain_list)
+        and version in ('TLS v1.2', 'TLS v1.1', 'TLS v1.0')
         and cipher_suite_name in ('TLS_RSA_WITH_RC4_128_SHA', 'TLS_ECDHE_ECDSA_WITH_RC4_128_SHA', 'TLS_ECDHE_RSA_WITH_RC4_128_SHA')
         and handshake_completed
       group by
@@ -296,7 +298,21 @@ query "ssl_server_configuration_checks" {
         net_tls_connection
       where
         address in (select address from domain_list)
+        and version in ('TLS v1.2', 'TLS v1.1', 'TLS v1.0')
         and cipher_suite_name in ('TLS_RSA_WITH_RC4_128_SHA', 'TLS_ECDHE_ECDSA_WITH_RC4_128_SHA', 'TLS_ECDHE_RSA_WITH_RC4_128_SHA')
+        and handshake_completed
+      group by address
+    ),
+    check_cbc_cipher as (
+      select
+        address,
+        count(*)
+      from
+        net_tls_connection
+      where
+        address in (select address from domain_list)
+        and version in ('TLS v1.2', 'TLS v1.1', 'TLS v1.0')
+        and cipher_suite_name in ('TLS_RSA_WITH_AES_128_CBC_SHA', 'TLS_RSA_WITH_AES_256_CBC_SHA', 'TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA', 'TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA', 'TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA', 'TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA', 'TLS_RSA_WITH_3DES_EDE_CBC_SHA', 'TLS_RSA_WITH_AES_128_CBC_SHA256', 'TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA', 'TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256', 'TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256')
         and handshake_completed
       group by address
     )
@@ -389,6 +405,22 @@ query "ssl_server_configuration_checks" {
       from
         domain_list as d
         left join check_rc4_cipher as i on d.address = i.address
+    UNION
+      select
+        'Avoid using CBC ciphers' as "Recommendation",
+        case
+          when i.address is null then '✅'
+          when i.count < 1 then '✅'
+          else '❌'
+        end as "Status",
+        case
+          when i.address is null or i.count < 1 then d.domain || ' does not use CBC cipher suites.'
+          else d.domain || ' uses CBC cipher suites.'
+        end
+          || ' Cipher block chaining (CBC) is a mode of operation for a block cipher in which a sequence of bits are encrypted as a single unit, or block, with a cipher key applied to the entire block. The problem with CBC mode is that the decryption of blocks is dependent on the previous ciphertext block, which means attackers can manipulate the decryption of a block by tampering with the previous block using the commutative property of XOR. If the server uses TLS 1.2 or TLS 1.1, or TLS 1.0 with CBC cipher modes, there is a chance that the server gets vulnerable to Zombie POODLE, GOLDENDOODLE, 0-Length OpenSSL and Sleeping POODLE.' as "Result"
+      from
+        domain_list as d
+        left join check_cbc_cipher as i on d.address = i.address
   EOQ
 
   param "hostname_input" {}

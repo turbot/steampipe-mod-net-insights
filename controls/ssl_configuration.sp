@@ -11,6 +11,7 @@ benchmark "ssl_configuration_best_practices" {
     control.ssl_use_strong_key_exchange,
     control.ssl_use_tls_fallback_scsv,
     control.ssl_avoid_using_rc4_cipher_suite,
+    control.ssl_avoid_using_cbc_cipher_suite,
     control.ssl_certificate_avoid_too_much_security
   ]
 
@@ -296,6 +297,47 @@ control "ssl_avoid_using_rc4_cipher_suite" {
     from
       domain_list as d
       left join check_rc4_cipher as i on d.address = i.address;
+  EOT
+
+  param "dns_domain_names" {
+    description = "DNS domain names."
+    default     = var.dns_domain_names
+  }
+}
+
+control "ssl_avoid_using_cbc_cipher_suite" {
+  title       = "SSL/TLS servers should avoid using CBC cipher suites"
+  description = "Cipher block chaining (CBC) is a mode of operation for a block cipher in which a sequence of bits are encrypted as a single unit, or block, with a cipher key applied to the entire block. The problem with CBC mode is that the decryption of blocks is dependent on the previous ciphertext block, which means attackers can manipulate the decryption of a block by tampering with the previous block using the commutative property of XOR. If the server uses TLS 1.2 or TLS 1.1, or TLS 1.0 with CBC cipher modes, there is a chance that the server gets vulnerable to Zombie POODLE, GOLDENDOODLE, 0-Length OpenSSL and Sleeping POODLE."
+
+  sql = <<-EOT
+    with domain_list as (
+      select domain, concat(domain, ':443') as address from jsonb_array_elements_text(to_jsonb($1::text[])) as domain
+    ),
+    check_cbc_cipher as (
+      select
+        address,
+        count(*)
+      from
+        net_tls_connection
+      where
+        address in (select address from domain_list)
+        and cipher_suite_name in ('TLS_RSA_WITH_AES_128_CBC_SHA', 'TLS_RSA_WITH_AES_256_CBC_SHA', 'TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA', 'TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA', 'TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA', 'TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA', 'TLS_RSA_WITH_3DES_EDE_CBC_SHA', 'TLS_RSA_WITH_AES_128_CBC_SHA256', 'TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA', 'TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256', 'TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256')
+        and handshake_completed
+      group by address
+    )
+    select
+      d.domain as resource,
+      case
+        when i.address is null or i.count < 1 then 'ok'
+        else 'alarm'
+      end as status,
+      case
+        when i.address is null or i.count < 1 then d.domain || ' does not use CBC cipher suites.'
+        else d.domain || ' uses CBC cipher suites.'
+      end as reason
+    from
+      domain_list as d
+      left join check_cbc_cipher as i on d.address = i.address;
   EOT
 
   param "dns_domain_names" {

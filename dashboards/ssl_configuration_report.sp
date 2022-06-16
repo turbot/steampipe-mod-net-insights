@@ -1,7 +1,7 @@
 dashboard "ssl_configuration_report" {
 
   title         = "SSL/TLS Server Configuration Report"
-  documentation = file("./dashboards/docs/ssl_server_configuration_report.md")
+  documentation = file("./dashboards/docs/ssl_configuration_report.md")
 
   tags = merge(local.ssl_common_tags, {
     type     = "Report"

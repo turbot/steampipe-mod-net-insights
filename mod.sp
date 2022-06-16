@@ -7,6 +7,12 @@ locals {
   }
 }
 
+variable "domain_names" {
+  type        = list(string)
+  description = "A list of domain names to run DNS and SSL checks for."
+  default     = [ "github.com", "microsoft.com" ]
+}
+
 mod "net_insights" {
   # hub metadata
   title         = "Net Insights"

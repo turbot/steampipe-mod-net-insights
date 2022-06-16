@@ -44,9 +44,9 @@ control "ssl_certificate_domain_name_mismatch" {
     order by common_name;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -72,9 +72,9 @@ control "ssl_certificate_valid" {
     order by common_name;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -100,9 +100,9 @@ control "ssl_certificate_not_expired" {
     order by common_name;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -128,9 +128,9 @@ control "ssl_certificate_not_self_signed" {
     order by common_name;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -156,9 +156,9 @@ control "ssl_certificate_not_revoked" {
     order by common_name;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -181,9 +181,9 @@ control "ssl_certificate_secure_private_key" {
     order by common_name;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -209,9 +209,9 @@ control "ssl_certificate_multiple_hostname" {
     order by common_name;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -245,9 +245,9 @@ control "ssl_certificate_check_for_reliable_ca" {
       revocation_info;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -270,9 +270,9 @@ control "ssl_certificate_no_insecure_signature" {
     order by common_name;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -298,9 +298,9 @@ control "ssl_certificate_transparent" {
     order by common_name;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -331,8 +331,8 @@ control "ssl_certificate_caa_record_configured" {
     order by domain_list.domain;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }

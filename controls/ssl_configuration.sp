@@ -40,9 +40,9 @@ control "ssl_certificate_use_complete_certificate_chain" {
     order by common_name;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -81,9 +81,9 @@ control "ssl_use_secure_protocol" {
       left join check_insecure_protocol as i on d.address = i.address;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -122,9 +122,9 @@ control "ssl_use_secure_cipher_suite" {
       left join check_insecure_cipher as i on d.address = i.address;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -163,9 +163,9 @@ control "ssl_use_perfect_forward_secrecy" {
       left join check_pfs_cipher as i on d.address = i.address;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -208,9 +208,9 @@ control "ssl_use_strong_key_exchange" {
       domain_list as d;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -258,9 +258,9 @@ control "ssl_use_tls_fallback_scsv" {
       domain_list as d;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -299,9 +299,9 @@ control "ssl_avoid_using_rc4_cipher_suite" {
       left join check_rc4_cipher as i on d.address = i.address;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -341,9 +341,9 @@ control "ssl_avoid_using_cbc_cipher_suite" {
       left join check_cbc_cipher as i on d.address = i.address;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -375,8 +375,8 @@ control "ssl_certificate_avoid_too_much_security" {
     order by common_name;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }

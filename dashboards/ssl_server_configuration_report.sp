@@ -107,7 +107,7 @@ query "ssl_server_supported_protocols" {
       string_agg(version, ',') as value,
       'info' as type
     from
-      supported_protocols
+      supported_protocols;
   EOQ
 
   param "hostname_input" {}
@@ -141,7 +141,7 @@ query "ssl_server_insecure_cipher_count" {
       end as type
     from
       domain_list as d
-      left join insecure_cipher_count as i on d.address = i.address
+      left join insecure_cipher_count as i on d.address = i.address;
   EOQ
 
   param "hostname_input" {}
@@ -179,7 +179,7 @@ query "ssl_server_rc4_cipher_count" {
       end as type
     from
       domain_list as d
-      left join rc4_cipher_count as i on d.address = i.address
+      left join rc4_cipher_count as i on d.address = i.address;
   EOQ
 
   param "hostname_input" {}
@@ -339,7 +339,7 @@ query "ssl_server_configuration_checks" {
         when i.address is null or i.count < 1 then d.domain || ' doesn''t support insecure protocols.'
         else d.domain || ' supports insecure protocols.'
       end 
-        || ' There are six protocols in the SSL/TLS family: SSL v2, SSL v3, TLS v1.0, TLS v1.1, TLS v1.2, and TLS v1.3. It is recommended to use secure protocols (i.e. TLS v1.2 or TLS v1.3), since these versions offers modern authenticated encryption, improved latency and don''t have obsolete features like cipher suites. TLS v1.0 and TLS v1.1 are legacy protocol and shouldn''t be used.' as "Result"
+        || ' There are six protocols in the SSL/TLS family: SSL v2, SSL v3, TLS v1.0, TLS v1.1, TLS v1.2, and TLS v1.3. It is recommended to use secure protocols (i.e. TLS v1.2 or TLS v1.3) since these versions offer modern authenticated encryption, improved latency and don''t have obsolete features like cipher suites. TLS v1.0 and TLS v1.1 are legacy protocols and shouldn''t be used.' as "Result"
     from
       domain_list as d
       left join check_insecure_protocol as i on d.address = i.address
@@ -354,7 +354,7 @@ query "ssl_server_configuration_checks" {
         when i.address is null or i.count < 1 then d.domain || ' uses secure cipher suites.'
         else d.domain || ' does not use secure cipher suites.'
       end
-        || ' A cipher suite is a set of cryptographic algorithms. The set of algorithms that cipher suites usually contain include: a key exchange algorithm, a bulk encryption algorithm, and a message authentication code (MAC) algorithm. It is recommended to use secure ciphers like Authenticated Encryption with Associated Data (AEAD) cipher suites and Perfect Forward Secrecy (PFS) ciphers. The following cipher suites are considered insecure: TLS_RSA_WITH_RC4_128_SHA, TLS_RSA_WITH_3DES_EDE_CBC_SHA, TLS_RSA_WITH_AES_128_CBC_SHA256, TLS_ECDHE_ECDSA_WITH_RC4_128_SHA, TLS_ECDHE_RSA_WITH_RC4_128_SHA, TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA, TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256.' as "Result"
+        || ' A cipher suite is a set of cryptographic algorithms. The set of algorithms that cipher suites usually contain includes: a key exchange algorithm, a bulk encryption algorithm, and a message authentication code (MAC) algorithm. It is recommended to use secure ciphers like Authenticated Encryption with Associated Data (AEAD) cipher suites and Perfect Forward Secrecy (PFS) ciphers. The following cipher suites are considered insecure: TLS_RSA_WITH_RC4_128_SHA, TLS_RSA_WITH_3DES_EDE_CBC_SHA, TLS_RSA_WITH_AES_128_CBC_SHA256, TLS_ECDHE_ECDSA_WITH_RC4_128_SHA, TLS_ECDHE_RSA_WITH_RC4_128_SHA, TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA, TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256.' as "Result"
     from
       domain_list as d
       left join check_insecure_cipher as i on d.address = i.address
@@ -369,7 +369,7 @@ query "ssl_server_configuration_checks" {
         when i.address is not null and i.count > 1 then d.domain || ' cipher suites provide forward secrecy.'
         else d.domain || ' cipher suites do not provide forward secrecy.'
       end
-        || ' In cryptography, forward secrecy (FS), also known as perfect forward secrecy (PFS), is a feature of specific key agreement protocols that gives assurances that session keys will not be compromised even if long-term secrets used in the session key exchange are compromised.' as "Result"
+        || ' In cryptography, forward secrecy (FS), also known as perfect forward secrecy (PFS), is a feature of specific key agreement protocols that gives assurances that session keys will not be compromised even if long-term secrets are used in the session key exchange are compromised.' as "Result"
     from
       domain_list as d
       left join check_pfs_cipher as i on d.address = i.address
@@ -386,7 +386,7 @@ query "ssl_server_configuration_checks" {
         then d.domain || ' uses strong key exchange mechanism.'
         else d.domain || ' does not use strong key exchange mechanism.'
         end
-          || ' It is recommended to use strong key exchange mechanism to keep data being transferred across the network more secure. Both parties agree on a single cipher suite and generate the session keys (symmetric keys) to encrypt and decrypt the information during an SSL session.' as "Result"
+          || ' It is recommended to use a strong key exchange mechanism to keep data being transferred across the network more secure. Both parties agree on a single cipher suite and generate the session keys (symmetric keys) to encrypt and decrypt the information during an SSL session.' as "Result"
       from
         domain_list as d
     UNION
@@ -401,7 +401,7 @@ query "ssl_server_configuration_checks" {
           when i.address is null or i.count < 1 then d.domain || ' does not use RC4 cipher suites.'
           else d.domain || ' uses RC4 cipher suites.'
         end
-          || ' RC4 is a stream cipher, and it is more malleable than common block ciphers. If not used together with a strong message authentication code (MAC), then encryption is vulnerable to cyber attacks. RC4 is demonstrably broken, weak and unsafe to use in TLS as currently implemented.' as "Result"
+          || ' RC4 is a stream cipher and is more malleable than common block ciphers. Encryption is vulnerable to cyber-attacks if not used together with a strong message authentication code (MAC). RC4 is demonstrably broken, weak and unsafe to use in TLS as currently implemented.' as "Result"
       from
         domain_list as d
         left join check_rc4_cipher as i on d.address = i.address

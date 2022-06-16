@@ -6,7 +6,7 @@ locals {
 
 dashboard "ssl_certificate_report" {
 
-  title = "SSL Certificate Report"
+  title         = "SSL Certificate Report"
   documentation = file("./dashboards/docs/ssl_certificate_report.md")
 
   tags = merge(local.ssl_common_tags, {
@@ -28,7 +28,9 @@ dashboard "ssl_certificate_report" {
     width = 12
 
     container {
+
       width = 6
+
       table {
         type  = "line"
         query = query.ssl_certificate_record
@@ -65,13 +67,13 @@ dashboard "ssl_certificate_report" {
 
   # Chains
   container {
+
     title = "Additional Certificates"
     width = 12
 
     container {
       width = 12
       table {
-        #type  = "line"
         query = query.ssl_additional_certificate_record
         args  = {
           hostname_input = self.input.hostname_input.value

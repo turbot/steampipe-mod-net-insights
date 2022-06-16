@@ -8,8 +8,8 @@ dashboard "ssl_configuration_report" {
     category = "Networking"
   })
 
-  input "hostname_input" {
-    title       = "Enter a hostname:"
+  input "domain_input" {
+    title       = "Enter a domain:"
     width       = 4
     type        = "text"
     placeholder = "example.com"
@@ -21,38 +21,37 @@ dashboard "ssl_configuration_report" {
     width = 12
 
     card {
-      
       width = 3
       query = query.ssl_server_supported_protocols
       args  = {
-        hostname_input = self.input.hostname_input.value
+        domain_input = self.input.domain_input.value
       }
     }
 
+    // TODO: What should this link to?
+    /*
     card {
-      
       width = 3
       query = query.ssl_server_insecure_cipher_count
       args  = {
-        hostname_input = self.input.hostname_input.value
+        domain_input = self.input.domain_input.value
       }
     }
+    */
 
     card {
-      
       width = 3
       query = query.ssl_server_rc4_cipher_count
       args  = {
-        hostname_input = self.input.hostname_input.value
+        domain_input = self.input.domain_input.value
       }
     }
 
     card {
-      
       width = 3
       query = query.ssl_server_cbc_cipher_count
       args  = {
-        hostname_input = self.input.hostname_input.value
+        domain_input = self.input.domain_input.value
       }
     }
   }
@@ -76,7 +75,7 @@ dashboard "ssl_configuration_report" {
       width = 6
       query = query.ssl_server_configuration_checks
         args  = {
-        hostname_input = self.input.hostname_input.value
+        domain_input = self.input.domain_input.value
       }
 
       column "Recommendation" {
@@ -104,13 +103,13 @@ query "ssl_server_supported_protocols" {
     )
     select
       'Protocols Supported' as label,
-      string_agg(version, ',') as value,
+      string_agg(version, ', ') as value,
       'info' as type
     from
       supported_protocols;
   EOQ
 
-  param "hostname_input" {}
+  param "domain_input" {}
 }
 
 query "ssl_server_insecure_cipher_count" {
@@ -132,7 +131,7 @@ query "ssl_server_insecure_cipher_count" {
         address
     )
     select
-      'Insecure Cipher' as label,
+      'Insecure Ciphers' as label,
       i.cipher_count as value,
       case
         when i.cipher_count is null then 'ok'
@@ -144,7 +143,7 @@ query "ssl_server_insecure_cipher_count" {
       left join insecure_cipher_count as i on d.address = i.address;
   EOQ
 
-  param "hostname_input" {}
+  param "domain_input" {}
 }
 
 query "ssl_server_rc4_cipher_count" {
@@ -167,7 +166,7 @@ query "ssl_server_rc4_cipher_count" {
         address
     )
     select
-      'RC4 Cipher' as label,
+      'RC4 Cipher Suites' as label,
       case
         when i.cipher_count is null then 0
         else i.cipher_count
@@ -182,7 +181,7 @@ query "ssl_server_rc4_cipher_count" {
       left join rc4_cipher_count as i on d.address = i.address;
   EOQ
 
-  param "hostname_input" {}
+  param "domain_input" {}
 }
 
 query "ssl_server_cbc_cipher_count" {
@@ -204,7 +203,7 @@ query "ssl_server_cbc_cipher_count" {
         address
     )
     select
-      'CBC Cipher' as label,
+      'CBC Cipher Suites' as label,
       case
         when i.cipher_count is null then 0
         else i.cipher_count
@@ -219,20 +218,20 @@ query "ssl_server_cbc_cipher_count" {
       left join cbc_cipher_count as i on d.address = i.address
   EOQ
 
-  param "hostname_input" {}
+  param "domain_input" {}
 }
 
 query "ssl_server_supported_cipher_suites" {
   sql = <<-EOQ
     select
-      version as "Protocols",
-      concat(cipher_suite_name, ' (', cipher_suite_id, ')') as "Cipher Suites"
+      version as "Protocol",
+      concat(cipher_suite_name, ' (', cipher_suite_id, ')') as "Cipher Suite"
     from
       net_tls_connection
     where
       address = 'turbot.com:443'
       and handshake_completed
-    order by version desc
+    order by version desc, "Cipher Suite"
   EOQ
 }
 
@@ -338,8 +337,8 @@ query "ssl_server_configuration_checks" {
       case
         when i.address is null or i.count < 1 then d.domain || ' doesn''t support insecure protocols.'
         else d.domain || ' supports insecure protocols.'
-      end 
-        || ' There are six protocols in the SSL/TLS family: SSL v2, SSL v3, TLS v1.0, TLS v1.1, TLS v1.2, and TLS v1.3. It is recommended to use secure protocols (i.e. TLS v1.2 or TLS v1.3) since these versions offer modern authenticated encryption, improved latency and don''t have obsolete features like cipher suites. TLS v1.0 and TLS v1.1 are legacy protocols and shouldn''t be used.' as "Result"
+      end
+        || ' There are six protocols in the SSL/TLS family: SSL v2, SSL v3, TLS v1.0, TLS v1.1, TLS v1.2, and TLS v1.3. It is recommended to use secure protocols (e.g., TLS v1.2, TLS v1.3) since these versions offer modern authenticated encryption, improved latency and don''t have obsolete features like cipher suites. TLS v1.0 and TLS v1.1 are legacy protocols and shouldn''t be used.' as "Result"
     from
       domain_list as d
       left join check_insecure_protocol as i on d.address = i.address
@@ -423,5 +422,5 @@ query "ssl_server_configuration_checks" {
         left join check_cbc_cipher as i on d.address = i.address
   EOQ
 
-  param "hostname_input" {}
+  param "domain_input" {}
 }

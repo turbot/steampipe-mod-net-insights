@@ -2,7 +2,9 @@ A server certificate is a digital certificate issued to the server for two main 
 
 This report answers the following questions:
 
-- Is my certificate valid?
-- How long are my certificates valid?
-- Is my certificate self-signed?
-- Was my certificate revoked by the certificate authority?
+- Is the certificate valid?
+- How long is the certificate valid?
+- Is the certificate self-signed?
+- Was the certificate revoked by the certificate authority?
+- Is the certificate using any insecure certificate algorithms?
+- Are there any additional certificates?

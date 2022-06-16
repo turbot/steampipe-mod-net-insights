@@ -14,8 +14,8 @@ dashboard "ssl_certificate_report" {
     category = "Networking"
   })
 
-  input "hostname_input" {
-    title       = "Enter a hostname:"
+  input "domain_input" {
+    title       = "Enter a domain:"
     width       = 4
     type        = "text"
     placeholder = "example.com"
@@ -35,7 +35,7 @@ dashboard "ssl_certificate_report" {
         type  = "line"
         query = query.ssl_certificate_record
         args  = {
-          hostname_input = self.input.hostname_input.value
+          domain_input = self.input.domain_input.value
         }
 
         column "Alternative Names" {
@@ -51,7 +51,7 @@ dashboard "ssl_certificate_report" {
       table {
         query = query.ssl_certificate_report
         args  = {
-          hostname_input = self.input.hostname_input.value
+          domain_input = self.input.domain_input.value
         }
 
         column "Result" {
@@ -76,7 +76,7 @@ dashboard "ssl_certificate_report" {
       table {
         query = query.ssl_additional_certificate_record
         args  = {
-          hostname_input = self.input.hostname_input.value
+          domain_input = self.input.domain_input.value
         }
       }
     }
@@ -109,7 +109,7 @@ query "ssl_certificate_record" {
       domain = $1;
   EOQ
 
-  param "hostname_input" {}
+  param "domain_input" {}
 }
 
 query "ssl_additional_certificate_record" {
@@ -125,10 +125,11 @@ query "ssl_additional_certificate_record" {
       net_certificate,
       jsonb_array_elements(chain) as c
     where
-      domain = $1;
+      domain = $1
+    order by domain;
   EOQ
 
-  param "hostname_input" {}
+  param "domain_input" {}
 }
 
 query "ssl_certificate_report" {
@@ -167,7 +168,7 @@ query "ssl_certificate_report" {
     domain = $1
   UNION
   select
-    'SSL certificate should not be self signed' as "Recommendation",
+    'SSL certificate should not be self-signed' as "Recommendation",
     case
       when common_name = issuer_name then '❌'
       else '✅'
@@ -182,7 +183,7 @@ query "ssl_certificate_report" {
     domain = $1
   UNION
   select
-    'SSL certificate should not be a revoked certificate' as "Recommendation",
+    'SSL certificate should not be revoked' as "Recommendation",
     case
       when revoked then '❌'
       else '✅'
@@ -197,12 +198,12 @@ query "ssl_certificate_report" {
     domain = $1
   UNION
   select
-    'SSL certificate should not use insecure certificate algorithm (i.e. MD2, MD5, SHA1)' as "Recommendation",
+    'SSL certificate should not use insecure certificate algorithms (e.g., MD2, MD5, SHA1)' as "Recommendation",
     case
       when signature_algorithm like any (array['%SHA1%', '%MD2%', '%MD5%']) then '❌'
       else '✅'
     end as "Status",
-    'Certificate using ' || signature_algorithm || 'signature algorithm. MD2 and MD5 are part of the Message Digest Algorithm family which was created to verify the integrity of any message or file that is hashed. It has been cryptographically broken which means they are vulnerable to collision attacks and hence considered insecure. Also SHA1 is considered cryptographically weak. It is recommended not to use these insecure signatures.' as "Result"
+    'Certificate uses ' || signature_algorithm || ' signature algorithm(s). MD2 and MD5 are part of the Message Digest Algorithm family which was created to verify the integrity of any message or file that is hashed. It has been cryptographically broken which means they are vulnerable to collision attacks and hence considered insecure. Also SHA1 is considered cryptographically weak. It is recommended not to use these insecure signatures.' as "Result"
   from
     net_certificate
   where
@@ -225,5 +226,5 @@ query "ssl_certificate_report" {
     domain_list
   EOQ
 
-  param "hostname_input" {}
+  param "domain_input" {}
 }

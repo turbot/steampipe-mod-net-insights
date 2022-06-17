@@ -1,9 +1,3 @@
-variable "dns_domain_names" {
-  type        = list(string)
-  description = "A list of domain names to run DNS checks for."
-  default     = [ "github.com", "microsoft.com" ]
-}
-
 locals {
   dns_best_practices_common_tags = merge(local.net_insights_common_tags, {
     service = "Net/DNS"
@@ -64,9 +58,9 @@ control "dns_parent_records_found" {
     group by domain;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -104,9 +98,9 @@ control "dns_parent_ns_listed_at_parent" {
       domain_list;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -150,9 +144,9 @@ control "dns_parent_ns_all_with_type_a_record" {
       domain_list;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -213,9 +207,9 @@ control "dns_ns_name_valid" {
       left join invalid_ns_count as r on d.domain = r.domain;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -241,9 +235,9 @@ control "dns_ns_at_least_two" {
       type;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -292,9 +286,9 @@ control "dns_ns_authoritative" {
       left join ns_non_authoritative on domain_list.domain = ns_non_authoritative.domain;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -344,9 +338,9 @@ control "dns_ns_responded" {
     group by nc.domain, nic.count, nc.count;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -407,9 +401,9 @@ control "dns_ns_local_matches_parent_ns_list" {
       left join ns_with_different_ns_count on domain_list.domain = ns_with_different_ns_count.domain;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -451,9 +445,9 @@ control "dns_ns_dns_no_cname_with_other_record" {
       count_stats;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -511,9 +505,9 @@ control "dns_ns_no_cname_with_other_record" {
       left join ns_record_with_cname_other on domain_list.domain = ns_record_with_cname_other.domain;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -568,9 +562,9 @@ control "dns_ns_on_different_subnets" {
     group by domain;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -616,9 +610,9 @@ control "dns_ns_all_ip_public" {
       left join ns_record_with_private_ip on domain_list.domain = ns_record_with_private_ip.domain;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -673,9 +667,9 @@ control "dns_ns_different_autonomous_systems" {
     group by domain;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -748,9 +742,9 @@ control "dns_soa_ns_same_serial" {
       domain_list as d;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -795,9 +789,9 @@ control "dns_soa_primary_ns_listed_at_parent" {
     group by ans.domain;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -824,9 +818,9 @@ control "dns_soa_serial_check" {
       and type = 'SOA';
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -849,9 +843,9 @@ control "dns_soa_refresh_value_check" {
       and type = 'SOA';
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -874,9 +868,9 @@ control "dns_soa_retry_value_check" {
       and type = 'SOA';
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -899,9 +893,9 @@ control "dns_soa_expire_value_check" {
       and type = 'SOA';
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -924,9 +918,9 @@ control "dns_soa_minimum_value_check" {
       and type = 'SOA';
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -974,9 +968,9 @@ control "dns_mx_valid_hostname" {
       domain_list;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -1022,9 +1016,9 @@ control "dns_mx_all_ip_public" {
       left join mx_record_with_private_ip on domain_list.domain = mx_record_with_private_ip.domain;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -1085,9 +1079,9 @@ control "dns_mx_no_cname_with_other_record" {
       left join mx_record_with_cname_other on domain_list.domain = mx_record_with_cname_other.domain;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 */
@@ -1127,9 +1121,9 @@ control "dns_mx_not_contain_ip" {
       left join mx_record_with_ip as i on d.domain = i.domain;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -1175,9 +1169,9 @@ control "dns_mx_at_least_two" {
       left join mx_record_count_by_domain on domain_list.domain = mx_record_count_by_domain.domain;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -1224,9 +1218,9 @@ control "dns_mx_no_duplicate_a_record" {
       left join mx_with_public_ips_count as p on d.domain = p.domain;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -1296,9 +1290,9 @@ control "dns_mx_reverse_a_record" {
       domain_list;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }
 
@@ -1364,8 +1358,8 @@ control "dns_www_all_ip_public" {
       left join domain_with_www_with_private_ip on domains_with_www.domain = domain_with_www_with_private_ip.domain;
   EOT
 
-  param "dns_domain_names" {
+  param "domain_names" {
     description = "DNS domain names."
-    default     = var.dns_domain_names
+    default     = var.domain_names
   }
 }

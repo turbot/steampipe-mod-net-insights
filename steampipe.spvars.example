@@ -1,1 +1,1 @@
-dns_domain_names = [ "github.com", "microsoft.com" ]
+domain_names = [ "github.com", "microsoft.com" ]

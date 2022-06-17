@@ -96,13 +96,13 @@ Several benchmarks have [input variables](https://steampipe.io/docs/using-steamp
 - Pass in a value on the command line:
 
   ```shell
-  steampipe check benchmark.dns_best_practices --var 'dns_domain_names=["github.com", "amazon.com"]'
+  steampipe check benchmark.dns_best_practices --var 'domain_names=["github.com", "amazon.com"]'
   ```
 
 - Set an environment variable:
 
   ```shell
-  SP_VAR_dns_domain_names='["github.com", "amazon.com"]' steampipe check control.dns_ns_name_valid
+  SP_VAR_domain_names='["github.com", "amazon.com"]' steampipe check control.dns_ns_name_valid
   ```
 
   - Note: When using environment variables, if the variable is defined in `steampipe.spvars` or passed in through the command line, either of those will take precedence over the environment variable value. For more information on variable definition precedence, please see the link below.

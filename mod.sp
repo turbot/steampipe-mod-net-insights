@@ -13,6 +13,12 @@ variable "domain_names" {
   default     = [ "github.com", "microsoft.com" ]
 }
 
+variable "site_url" {
+  type        = list(string)
+  description = "The website URL."
+  default     = [ "https://microsoft.com", "https://github.com" ]
+}
+
 mod "net_insights" {
   # hub metadata
   title         = "Net Insights"

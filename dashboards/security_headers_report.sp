@@ -104,7 +104,7 @@ query "security_headers_raw_header_list" {
       header.key as "Header",
       (select string_agg(val, ',') from jsonb_array_elements_text(header.value) as val) as "Value"
     from
-      net_web_request,
+      net_http_request,
       jsonb_each(response_headers) as header
     where
       url = $1;
@@ -120,7 +120,7 @@ query "security_headers_missing_headers" {
       select
         array_agg(header.key)
       from
-        net_web_request,
+        net_http_request,
         jsonb_each(response_headers) as header
       where
         url = $1
@@ -165,7 +165,7 @@ query "security_headers_strict_transport_security_check" {
       end as type,
       'Strict-Transport-Security' as label
     from
-      net_web_request
+      net_http_request
     where
       url = $1;
   EOQ
@@ -186,7 +186,7 @@ query "security_headers_content_security_policy_check" {
       end as type,
       'Content-Security-Policy' as label
     from
-      net_web_request
+      net_http_request
     where
       url = $1;
   EOQ
@@ -207,7 +207,7 @@ query "security_headers_x_frame_options_check" {
       end as type,
       'X-Frame-Options' as label
     from
-      net_web_request
+      net_http_request
     where
       url = $1;
   EOQ
@@ -228,7 +228,7 @@ query "security_headers_x_content_type_options_check" {
       end as type,
       'X-Content-Type-Options' as label
     from
-      net_web_request
+      net_http_request
     where
       url = $1;
   EOQ
@@ -249,7 +249,7 @@ query "security_headers_referrer_policy_check" {
       end as type,
       'Referrer-Policy' as label
     from
-      net_web_request
+      net_http_request
     where
       url = $1;
   EOQ
@@ -270,7 +270,7 @@ query "security_headers_permissions_policy_check" {
       end as type,
       'Permissions-Policy' as label
     from
-      net_web_request
+      net_http_request
     where
       url = $1;
   EOQ

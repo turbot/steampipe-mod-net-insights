@@ -7,7 +7,7 @@ locals {
 dashboard "security_headers_report" {
 
   title = "Security Headers Report"
-  documentation = file("./dashboards/docs/security_headers_records_report.md")
+  documentation = file("./dashboards/docs/security_headers_report.md")
 
   tags = merge(local.security_headers_common_tags, {
     type     = "Report"

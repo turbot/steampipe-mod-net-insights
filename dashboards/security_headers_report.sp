@@ -1,8 +1,20 @@
+locals {
+  security_headers_common_tags = {
+    service = "Net/HTTP"
+  }
+}
+
 dashboard "security_headers_report" {
 
   title = "Security Headers Report"
+  documentation = file("./dashboards/docs/security_headers_records_report.md")
 
-  input "site_url_input" {
+  tags = merge(local.security_headers_common_tags, {
+    type     = "Report"
+    category = "Networking"
+  })
+
+  input "website_url_input" {
     title       = "Enter an address:"
     width       = 4
     type        = "text"
@@ -17,7 +29,7 @@ dashboard "security_headers_report" {
 
       query = query.security_headers_x_content_type_options_check
       args = {
-        site_url_input = self.input.site_url_input.value
+        website_url_input = self.input.website_url_input.value
       }
     }
 
@@ -26,7 +38,7 @@ dashboard "security_headers_report" {
 
       query = query.security_headers_strict_transport_security_check
       args = {
-        site_url_input = self.input.site_url_input.value
+        website_url_input = self.input.website_url_input.value
       }
     }
 
@@ -35,7 +47,7 @@ dashboard "security_headers_report" {
 
       query = query.security_headers_x_frame_options_check
       args = {
-        site_url_input = self.input.site_url_input.value
+        website_url_input = self.input.website_url_input.value
       }
     }
 
@@ -44,7 +56,7 @@ dashboard "security_headers_report" {
 
       query = query.security_headers_permissions_policy_check
       args = {
-        site_url_input = self.input.site_url_input.value
+        website_url_input = self.input.website_url_input.value
       }
     }
 
@@ -53,7 +65,7 @@ dashboard "security_headers_report" {
 
       query = query.security_headers_content_security_policy_check
       args = {
-        site_url_input = self.input.site_url_input.value
+        website_url_input = self.input.website_url_input.value
       }
     }
 
@@ -62,7 +74,7 @@ dashboard "security_headers_report" {
 
       query = query.security_headers_referrer_policy_check
       args = {
-        site_url_input = self.input.site_url_input.value
+        website_url_input = self.input.website_url_input.value
       }
     }
   }
@@ -74,7 +86,7 @@ dashboard "security_headers_report" {
       width = 6
       query = query.security_headers_raw_header_list
       args  = {
-        site_url_input = self.input.site_url_input.value
+        website_url_input = self.input.website_url_input.value
       }
 
       column "Value" {
@@ -87,7 +99,7 @@ dashboard "security_headers_report" {
       width = 6
       query = query.security_headers_missing_headers
       args  = {
-        site_url_input = self.input.site_url_input.value
+        website_url_input = self.input.website_url_input.value
       }
 
       column "Description" {
@@ -110,7 +122,7 @@ query "security_headers_raw_header_list" {
       url = $1;
   EOQ
 
-  param "site_url_input" {}
+  param "website_url_input" {}
 }
 
 # Missing headers
@@ -148,7 +160,7 @@ query "security_headers_missing_headers" {
       missing_headers;
   EOQ
 
-  param "site_url_input" {}
+  param "website_url_input" {}
 }
 
 # Cards
@@ -170,7 +182,7 @@ query "security_headers_strict_transport_security_check" {
       url = $1;
   EOQ
 
-  param "site_url_input" {}
+  param "website_url_input" {}
 }
 
 query "security_headers_content_security_policy_check" {
@@ -191,7 +203,7 @@ query "security_headers_content_security_policy_check" {
       url = $1;
   EOQ
 
-  param "site_url_input" {}
+  param "website_url_input" {}
 }
 
 query "security_headers_x_frame_options_check" {
@@ -212,7 +224,7 @@ query "security_headers_x_frame_options_check" {
       url = $1;
   EOQ
 
-  param "site_url_input" {}
+  param "website_url_input" {}
 }
 
 query "security_headers_x_content_type_options_check" {
@@ -233,7 +245,7 @@ query "security_headers_x_content_type_options_check" {
       url = $1;
   EOQ
 
-  param "site_url_input" {}
+  param "website_url_input" {}
 }
 
 query "security_headers_referrer_policy_check" {
@@ -254,7 +266,7 @@ query "security_headers_referrer_policy_check" {
       url = $1;
   EOQ
 
-  param "site_url_input" {}
+  param "website_url_input" {}
 }
 
 query "security_headers_permissions_policy_check" {
@@ -275,5 +287,5 @@ query "security_headers_permissions_policy_check" {
       url = $1;
   EOQ
 
-  param "site_url_input" {}
+  param "website_url_input" {}
 }

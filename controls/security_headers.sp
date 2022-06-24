@@ -1,12 +1,12 @@
 locals {
   security_headers_best_practices_common_tags = merge(local.net_insights_common_tags, {
-    service = "Net/Security"
+    service = "Net/HTTP"
   })
 }
 
 benchmark "security_headers_best_practices" {
   title         = "Security Headers Best Practices"
-  description   = "Best practices to check for various HTTP response headers that helps to protect your website from some common attacks."
+  description   = "Best practices to check for various HTTP response headers that help to protect your website from some common attacks."
   documentation = file("./controls/docs/security_headers_overview.md")
 
   children = [
@@ -25,8 +25,7 @@ benchmark "security_headers_best_practices" {
 
 control "security_headers_strict_transport_security" {
   title         = "Site headers must contain Strict-Transport-Security"
-  description   = "The HTTP Strict-Transport-Security (HSTS) response header helps to strengthens your TLS implementation by informing the browser that the site should only be accessed using HTTPS, nd any further attempts to access the site using HTTP should automatically redirect to HTTPS."
-  documentation = file("./controls/docs/security_headers_strict_transport_security.md")
+  description   = "The HTTP Strict-Transport-Security (HSTS) response header helps to strengthens your TLS implementation by informing the browser that the site should only be accessed using HTTPS, and any further attempts to access the site using HTTP should automatically redirect to HTTPS. These countermeasures help prevent Man-in-the-middle attacks as well as other attacks such as Session Hijacking."
 
   sql = <<-EOT
     with available_headers as (
@@ -48,15 +47,15 @@ control "security_headers_strict_transport_security" {
       end as status,
       case
         when array['Strict-Transport-Security'] <@ array_agg then url || ' contains required headers ''Strict-Transport-Security''.'
-        else url || ' has missing required headers ''Strict-Transport-Security''.'
+        else url || ' missing required headers ''Strict-Transport-Security''.'
       end as reason
     from
       available_headers;
   EOT
 
-  param "site_url" {
-    description = "The website URL."
-    default     = var.site_url
+  param "website_urls" {
+    description = "Website URLs."
+    default     = var.website_urls
   }
 }
 
@@ -84,15 +83,15 @@ control "security_headers_content_security_policy" {
       end as status,
       case
         when array['Content-Security-Policy'] <@ array_agg then url || ' contains required headers ''Content-Security-Policy''.'
-        else url || ' has missing required headers ''Content-Security-Policy''.' 
+        else url || ' missing required headers ''Content-Security-Policy''.'
       end as reason
     from
       available_headers;
   EOT
 
-  param "site_url" {
-    description = "The website URL."
-    default     = var.site_url
+  param "website_urls" {
+    description = "Website URLs."
+    default     = var.website_urls
   }
 }
 
@@ -120,15 +119,15 @@ control "security_headers_x_frame_options" {
       end as status,
       case
         when array['X-Frame-Options'] <@ array_agg then url || ' contains required headers ''X-Frame-Options''.'
-        else url || ' has missing required headers ''X-Frame-Options''.'
+        else url || ' missing required headers ''X-Frame-Options''.'
       end as reason
     from
       available_headers;
   EOT
 
-  param "site_url" {
-    description = "The website URL."
-    default     = var.site_url
+  param "website_urls" {
+    description = "Website URLs."
+    default     = var.website_urls
   }
 }
 
@@ -156,15 +155,15 @@ control "security_headers_x_content_type_options" {
       end as status,
       case
         when array['X-Content-Type-Options'] <@ array_agg then url || ' contains required headers ''X-Content-Type-Options''.'
-        else url || ' has missing required headers ''X-Content-Type-Options''.'
+        else url || ' missing required headers ''X-Content-Type-Options''.'
       end as reason
     from
       available_headers;
   EOT
 
-  param "site_url" {
-    description = "The website URL."
-    default     = var.site_url
+  param "website_urls" {
+    description = "Website URLs."
+    default     = var.website_urls
   }
 }
 
@@ -192,15 +191,15 @@ control "security_headers_referrer_policy" {
       end as status,
       case
         when array['Referrer-Policy'] <@ array_agg then url || ' contains required headers ''Referrer-Policy''.'
-        else url || ' has missing required headers ''Referrer-Policy''.'
+        else url || ' missing required headers ''Referrer-Policy''.'
       end as reason
     from
       available_headers;
   EOT
 
-  param "site_url" {
-    description = "The website URL."
-    default     = var.site_url
+  param "website_urls" {
+    description = "Website URLs."
+    default     = var.website_urls
   }
 }
 
@@ -228,14 +227,14 @@ control "security_headers_permissions_policy" {
       end as status,
       case
         when array['Permissions-Policy'] <@ array_agg then url || ' contains required headers ''Permissions-Policy''.'
-        else url || ' has missing required headers ''Permissions-Policy''.'
+        else url || ' missing required headers ''Permissions-Policy''.'
       end as reason
     from
       available_headers;
   EOT
 
-  param "site_url" {
-    description = "The website URL."
-    default     = var.site_url
+  param "website_urls" {
+    description = "Website URLs."
+    default     = var.website_urls
   }
 }

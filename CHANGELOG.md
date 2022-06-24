@@ -1,3 +1,11 @@
+## v0.5 [2022-06-24]
+
+_What's new?_
+
+- New dashboards added:
+  - [Security Headers Report](https://hub.steampipe.io/mods/turbot/net_insights/dashboards/dashboard.security_headers_report) ([#15](https://github.com/turbot/steampipe-mod-net-insights/pull/15))
+- Added Security Headers Best Practices benchmark (`steampipe check benchmark.security_headers_best_practices`). ([#15](https://github.com/turbot/steampipe-mod-net-insights/pull/15))
+
 ## v0.4 [2022-06-17]
 
 _What's new?_

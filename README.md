@@ -1,4 +1,4 @@
-# Net Insights
+# Net Insights Mod for Steampipe
 
 20+ checks covering security best practices for DNS records.
 

@@ -15,7 +15,7 @@ dashboard "security_headers_report" {
   })
 
   input "website_url_input" {
-    title       = "Enter an address:"
+    title       = "Enter an address (must include https://):"
     width       = 4
     type        = "text"
     placeholder = "https://example.com"

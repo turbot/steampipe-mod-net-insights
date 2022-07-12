@@ -935,7 +935,8 @@ benchmark "dns_mx_best_practices" {
     control.dns_mx_not_contain_ip,
     control.dns_mx_at_least_two,
     control.dns_mx_no_duplicate_a_record,
-    control.dns_mx_reverse_a_record
+    control.dns_mx_reverse_a_record,
+    control.dns_mx_dmarc_record_enabled
   ]
 
   tags = merge(local.dns_best_practices_common_tags, {
@@ -1288,6 +1289,42 @@ control "dns_mx_reverse_a_record" {
       end as reason
     from
       domain_list;
+  EOT
+
+  param "domain_names" {
+    description = "DNS domain names."
+    default     = var.domain_names
+  }
+}
+
+control "dns_mx_dmarc_record_enabled" {
+  title       = "DMARC should be enabled for your domain"
+  description = "Domain-based Message Authentication, Reporting & Conformance (DMARC) is an email authentication, policy, and reporting protocol. It builds on the widely deployed SPF and DKIM protocols, adding linkage to the author ('From:') domain name, published policies for recipient handling of authentication failures, and reporting from receivers to senders, to improve and monitor protection of the domain from fraudulent email."
+
+  sql = <<-EOT
+    with domain_list as (
+      select distinct domain from net_dns_record where domain in (select jsonb_array_elements_text(to_jsonb($1::text[]))) order by domain
+    ),
+    domain_name_with_dmarc as (
+      select domain as full_domain, concat('_dmarc.', domain) as dmarc_domain from domain_list order by domain
+    ),
+    domain_dmarc_list as (
+      select domain, value from net_dns_record where domain in (select dmarc_domain from domain_name_with_dmarc) order by domain
+    )
+    select
+      d.full_domain as resource,
+      case
+        when dl.domain is null then 'alarm'
+        when not dl.value like 'v=DMARC1%' then 'alarm'
+        else 'ok'
+      end as status,
+      case
+        when dl.domain is null or not dl.value like 'v=DMARC1%' then d.full_domain || ' DMARC is not set.'
+        else d.full_domain || ' DMARC is set.'
+      end as reason
+    from
+      domain_name_with_dmarc as d
+      left join domain_dmarc_list as dl on d.dmarc_domain = dl.domain;
   EOT
 
   param "domain_names" {

@@ -14,7 +14,7 @@ dashboard "ssl_certificate_report" {
     category = "Networking"
   })
 
-  input "domain_input" {
+  input "ssl_certificate_report_domain_input" {
     title       = "Enter a domain:"
     width       = 4
     type        = "text"

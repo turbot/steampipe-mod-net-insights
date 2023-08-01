@@ -1,5 +1,5 @@
-# Domain names used in DNS and SSL checks/reports, must not include http:// or https://
+# Domain names used in DNS and SSL checks/reports, must not include http:// or https://, may include a port number at the end
 domain_names = [ "github.com", "microsoft.com" ]
 
 # Website URLs used in HTTP checks/reports, must include http:// or https://
-website_urls = [ "https://github.com", "https://microsoft.com"
+website_urls = [ "https://github.com", "https://microsoft.com"]

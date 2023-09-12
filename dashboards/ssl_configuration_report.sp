@@ -8,11 +8,11 @@ dashboard "ssl_configuration_report" {
     category = "Networking"
   })
 
-  input "domain_input" {
-    title       = "Enter a domain:"
+  input "address_input" {
+    title       = "Enter an address:"
     width       = 4
     type        = "text"
-    placeholder = "example.com"
+    placeholder = "example.com:443"
   }
 
   # Cards
@@ -24,7 +24,7 @@ dashboard "ssl_configuration_report" {
       width = 3
       query = query.ssl_server_supported_protocols
       args  = {
-        domain_input = self.input.domain_input.value
+        address_input = self.input.address_input.value
       }
     }
 
@@ -34,7 +34,7 @@ dashboard "ssl_configuration_report" {
       width = 3
       query = query.ssl_server_insecure_cipher_count
       args  = {
-        domain_input = self.input.domain_input.value
+        address_input = self.input.address_input.value
       }
     }
     */
@@ -43,7 +43,7 @@ dashboard "ssl_configuration_report" {
       width = 3
       query = query.ssl_server_rc4_cipher_count
       args  = {
-        domain_input = self.input.domain_input.value
+        address_input = self.input.address_input.value
       }
     }
 
@@ -51,7 +51,7 @@ dashboard "ssl_configuration_report" {
       width = 3
       query = query.ssl_server_cbc_cipher_count
       args  = {
-        domain_input = self.input.domain_input.value
+        address_input = self.input.address_input.value
       }
     }
   }
@@ -75,7 +75,7 @@ dashboard "ssl_configuration_report" {
       width = 6
       query = query.ssl_server_configuration_checks
         args  = {
-        domain_input = self.input.domain_input.value
+        address_input = self.input.address_input.value
       }
 
       column "Recommendation" {
@@ -109,7 +109,7 @@ query "ssl_server_supported_protocols" {
       supported_protocols;
   EOQ
 
-  param "domain_input" {}
+  param "address_input" {}
 }
 
 query "ssl_server_insecure_cipher_count" {
@@ -143,7 +143,7 @@ query "ssl_server_insecure_cipher_count" {
       left join insecure_cipher_count as i on d.address = i.address;
   EOQ
 
-  param "domain_input" {}
+  param "address_input" {}
 }
 
 query "ssl_server_rc4_cipher_count" {
@@ -181,7 +181,7 @@ query "ssl_server_rc4_cipher_count" {
       left join rc4_cipher_count as i on d.address = i.address;
   EOQ
 
-  param "domain_input" {}
+  param "address_input" {}
 }
 
 query "ssl_server_cbc_cipher_count" {
@@ -218,7 +218,7 @@ query "ssl_server_cbc_cipher_count" {
       left join cbc_cipher_count as i on d.address = i.address
   EOQ
 
-  param "domain_input" {}
+  param "address_input" {}
 }
 
 query "ssl_server_supported_cipher_suites" {
@@ -326,7 +326,7 @@ query "ssl_server_configuration_checks" {
     from
       net_certificate
     where
-      domain = $1
+      address = $1
     UNION
     select
       'Use secure protocols' as "Recommendation",
@@ -422,5 +422,5 @@ query "ssl_server_configuration_checks" {
         left join check_cbc_cipher as i on d.address = i.address
   EOQ
 
-  param "domain_input" {}
+  param "address_input" {}
 }

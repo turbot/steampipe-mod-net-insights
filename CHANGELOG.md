@@ -4,6 +4,14 @@ _Breaking changes_
 
 - Updated the plugin dependency section of the mod to use `min_version` instead of `version`. ([#28](https://github.com/turbot/steampipe-mod-net-insights/pull/28))
 
+_Enhancements_
+
+- Added the `dns_mx_dmarc_record_enabled` control to the `dns_mx_best_practices` benchmark. ([#20](https://github.com/turbot/steampipe-mod-net-insights/pull/20))
+
+_Bug fixes_
+
+- Fixed dashboard localhost URLs in README and index doc. ([#23](https://github.com/turbot/steampipe-mod-net-insights/pull/23))
+
 ## v0.5 [2022-06-24]
 
 _What's new?_

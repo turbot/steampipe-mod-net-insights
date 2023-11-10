@@ -7,7 +7,6 @@ _Breaking changes_
 _Enhancements_
 
 - Added the `dns_mx_dmarc_record_enabled` control to the `dns_mx_best_practices` benchmark. ([#20](https://github.com/turbot/steampipe-mod-net-insights/pull/20))
-- Updated the `dns_mx_report` query to include DMARC check for MX records. ([#20](https://github.com/turbot/steampipe-mod-net-insights/pull/20))
 
 _Bug fixes_
 

@@ -36,7 +36,7 @@ mod "net_insights" {
 
   require {
     plugin "net" {
-      version = "0.5.0"
+      min_version = "0.5.0"
     }
   }
 }

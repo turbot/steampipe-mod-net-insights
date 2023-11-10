@@ -792,6 +792,12 @@ query "dns_mx_report" {
     ),
     mx_record_count_by_domain as (
       select domain, count(*) from mx_record_with_ip group by domain order by domain
+    ),
+    domain_name_with_dmarc as (
+      select domain as full_domain, concat('_dmarc.', domain) as dmarc_domain from domain_list order by domain
+    ),
+    domain_dmarc_list as (
+      select domain, value from net_dns_record where domain in (select dmarc_domain from domain_name_with_dmarc) order by domain
     )
     select
       'MX records valid hostname' as "Recommendation",
@@ -883,6 +889,22 @@ query "dns_mx_report" {
         || ' A PTR record is reverse version of an A record. In general A record maps a domain name to an IP address, but PTR record maps IP address to a hostname. It is recommended to use PTR record when using both internal or external mail servers. It allows the receiving end to check the hostname of your IP address.' as "Result"
     from
       domain_list
+    UNION
+    select
+      'DMARC Record Published' as "Recommendation",
+      case
+        when dl.domain is null then '❌'
+        when not dl.value like 'v=DMARC1%' then '❌'
+        else '✅'
+      end as "Status",
+      case
+        when dl.domain is null or not dl.value like 'v=DMARC1%' then 'DMARC record not found.'
+        else 'DMARC record found.'
+      end 
+        || ' Domain-based Message Authentication, Reporting & Conformance (DMARC) is an email authentication, policy, and reporting protocol. It builds on the widely deployed SPF and DKIM protocols, adding linkage to the author ("From:") domain name, published policies for recipient handling of authentication failures, and reporting from receivers to senders, to improve and monitor protection of the domain from fraudulent email.' as "Result"
+    from
+      domain_name_with_dmarc as d
+      left join domain_dmarc_list as dl on d.dmarc_domain = dl.domain
   EOQ
 
   param "domain_name_input" {}

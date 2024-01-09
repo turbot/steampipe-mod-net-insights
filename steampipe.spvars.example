@@ -7,4 +7,4 @@ addresses = [ "github.com:443", "microsoft.com:443" ]
 domain_names = [ "github.com", "microsoft.com" ]
 
 # Website URLs used in HTTP checks/reports, must include http:// or https://
-website_urls = [ "https://github.com", "https://microsoft.com"]
+website_urls = [ "https://github.com", "https://microsoft.com" ]

@@ -36,13 +36,13 @@ control "ssl_certificate_use_complete_certificate_chain" {
     from
       net_certificate
     where
-      domain in (select jsonb_array_elements_text(to_jsonb($1::text[])))
+      address in (select jsonb_array_elements_text(to_jsonb($1::text[])))
     order by common_name;
   EOT
 
-  param "domain_names" {
-    description = "DNS domain names."
-    default     = var.domain_names
+  param "addresses" {
+    description = "SSL addresses."
+    default     = var.addresses
   }
 }
 
@@ -371,12 +371,12 @@ control "ssl_certificate_avoid_too_much_security" {
     from
       net_certificate
     where
-      domain in (select jsonb_array_elements_text(to_jsonb($1::text[])))
+      address in (select jsonb_array_elements_text(to_jsonb($1::text[])))
     order by common_name;
   EOT
 
-  param "domain_names" {
-    description = "DNS domain names."
-    default     = var.domain_names
+  param "addresses" {
+    description = "SSL addresses."
+    default     = var.addresses
   }
 }

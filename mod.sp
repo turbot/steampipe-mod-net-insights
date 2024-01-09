@@ -9,8 +9,14 @@ locals {
 
 variable "domain_names" {
   type        = list(string)
-  description = "A list of domain names to run DNS and SSL checks for. Each domain name should not contain http:// or https://."
+  description = "A list of domain names to run DNS checks for. Each domain name should not contain http:// or https://."
   default     = [ "github.com", "microsoft.com" ]
+}
+
+variable "addresses" {
+  type        = list(string)
+  description = "A list of addresses to run SSL checks for. Each address should not contain http:// or https:// and must include a port number."
+  default     = [ "github.com:443", "microsoft.com:443" ]
 }
 
 variable "website_urls" {
@@ -36,7 +42,7 @@ mod "net_insights" {
 
   require {
     plugin "net" {
-      min_version = "0.5.0"
+      min_version = "0.12.0"
     }
   }
 }

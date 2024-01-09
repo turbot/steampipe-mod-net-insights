@@ -14,11 +14,11 @@ dashboard "ssl_certificate_report" {
     category = "Networking"
   })
 
-  input "domain_input" {
-    title       = "Enter a domain:"
+  input "address_input" {
+    title       = "Enter an address:"
     width       = 4
     type        = "text"
-    placeholder = "example.com"
+    placeholder = "example.com:443"
   }
 
   # Server Certificate
@@ -35,7 +35,7 @@ dashboard "ssl_certificate_report" {
         type  = "line"
         query = query.ssl_certificate_record
         args  = {
-          domain_input = self.input.domain_input.value
+          address_input = self.input.address_input.value
         }
 
         column "Alternative Names" {
@@ -51,7 +51,7 @@ dashboard "ssl_certificate_report" {
       table {
         query = query.ssl_certificate_report
         args  = {
-          domain_input = self.input.domain_input.value
+          address_input = self.input.address_input.value
         }
 
         column "Result" {
@@ -76,7 +76,7 @@ dashboard "ssl_certificate_report" {
       table {
         query = query.ssl_additional_certificate_record
         args  = {
-          domain_input = self.input.domain_input.value
+          address_input = self.input.address_input.value
         }
       }
     }
@@ -98,7 +98,7 @@ query "ssl_certificate_record" {
         when revoked then 'Revoked'
         else 'Not Revoked'
       end as "Revocation Status",
-      case (select count(*) from net_dns_record where domain = $1 and type = 'CAA')
+      case (select count(*) from net_dns_record where address = $1 and type = 'CAA')
         when null then 'No'
         when 0 then 'No'
         else 'Yes'
@@ -106,10 +106,10 @@ query "ssl_certificate_record" {
     from
       net_certificate
     where
-      domain = $1;
+      address = $1;
   EOQ
 
-  param "domain_input" {}
+  param "address_input" {}
 }
 
 query "ssl_additional_certificate_record" {
@@ -125,11 +125,11 @@ query "ssl_additional_certificate_record" {
       net_certificate,
       jsonb_array_elements(chain) as c
     where
-      domain = $1
+      address = $1
     order by domain;
   EOQ
 
-  param "domain_input" {}
+  param "address_input" {}
 }
 
 query "ssl_certificate_report" {
@@ -150,7 +150,7 @@ query "ssl_certificate_report" {
   from
     net_certificate
   where
-    domain = $1
+    address = $1
   UNION
   select
     'SSL certificate should not be expired' as "Recommendation",
@@ -165,7 +165,7 @@ query "ssl_certificate_report" {
   from
     net_certificate
   where
-    domain = $1
+    address = $1
   UNION
   select
     'SSL certificate should not be self-signed' as "Recommendation",
@@ -180,7 +180,7 @@ query "ssl_certificate_report" {
   from
     net_certificate
   where
-    domain = $1
+    address = $1
   UNION
   select
     'SSL certificate should not be revoked' as "Recommendation",
@@ -195,7 +195,7 @@ query "ssl_certificate_report" {
   from
     net_certificate
   where
-    domain = $1
+    address = $1
   UNION
   select
     'SSL certificate should not use insecure certificate algorithms (e.g., MD2, MD5, SHA1)' as "Recommendation",
@@ -207,16 +207,16 @@ query "ssl_certificate_report" {
   from
     net_certificate
   where
-    domain = $1
+    address = $1
   UNION
   select
     'SSL server should have CAA record for certificate' as "Recommendation",
-    case (select count(*) from net_dns_record where domain = $1 and type = 'CAA')
+    case (select count(*) from net_dns_record where address = $1 and type = 'CAA')
       when null then '❌'
       when 0 then '❌'
       else '✅'
     end as "Status",
-    case (select count(*) from net_dns_record where domain = $1 and type = 'CAA')
+    case (select count(*) from net_dns_record where address = $1 and type = 'CAA')
       when null then 'CAA record not found.'
       when 0 then 'CAA record not found.'
       else 'CAA record found.'
@@ -226,5 +226,5 @@ query "ssl_certificate_report" {
     domain_list
   EOQ
 
-  param "domain_input" {}
+  param "address_input" {}
 }

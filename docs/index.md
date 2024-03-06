@@ -17,7 +17,7 @@ Dashboards can help answer questions like:
 - Are my DNS records compliant with security best practices?
 - Are my DNS records compliant with regulatory standards?
 
-## Getting started
+## Getting Started
 
 ### Installation
 

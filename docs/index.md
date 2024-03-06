@@ -6,10 +6,10 @@ repository: "https://github.com/turbot/steampipe-mod-net-insights"
 
 Run individual configuration, compliance and security controls to validate security best practices for DNS records.
 
-<img src="https://raw.githubusercontent.com/turbot/steampipe-mod-net-insights/add-new-checks/docs/images/net_dashboard.png" width="50%" type="thumbnail"/>
-<img src="https://raw.githubusercontent.com/turbot/steampipe-mod-net-insights/add-new-checks/docs/images/net_dns_records_report.png" width="50%" type="thumbnail"/>
-<img src="https://raw.githubusercontent.com/turbot/steampipe-mod-net-insights/add-new-checks/docs/images/net_dns_best_practices_dashboard.png" width="50%" type="thumbnail"/>
-<img src="https://raw.githubusercontent.com/turbot/steampipe-mod-net-insights/add-new-checks/docs/images/net_dns_best_practices_output.png" width="50%" type="thumbnail"/>
+<img src="https://raw.githubusercontent.com/turbot/steampipe-mod-net-insights/main/docs/images/net_dashboard.png" width="50%" type="thumbnail"/>
+<img src="https://raw.githubusercontent.com/turbot/steampipe-mod-net-insights/main/docs/images/net_dns_records_report.png" width="50%" type="thumbnail"/>
+<img src="https://raw.githubusercontent.com/turbot/steampipe-mod-net-insights/main/docs/images/net_dns_best_practices_dashboard.png" width="50%" type="thumbnail"/>
+<img src="https://raw.githubusercontent.com/turbot/steampipe-mod-net-insights/main/docs/images/net_dns_best_practices_output.png" width="50%" type="thumbnail"/>
 
 ## Overview
 

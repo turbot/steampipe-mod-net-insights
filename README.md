@@ -8,10 +8,10 @@
 20+ checks covering security best practices for DNS records.
 
 Run checks in a dashboard:
-![image](https://raw.githubusercontent.com/turbot/steampipe-mod-net-insights/add-new-checks/docs/images/net_dns_records_report.png)
+![image](https://raw.githubusercontent.com/turbot/steampipe-mod-net-insights/main/docs/images/net_dns_records_report.png)
 
 Or in a terminal:
-![image](https://raw.githubusercontent.com/turbot/steampipe-mod-net-insights/add-new-checks/docs/images/net_dns_best_practices_output.png)
+![image](https://raw.githubusercontent.com/turbot/steampipe-mod-net-insights/main/docs/images/net_dns_best_practices_output.png)
 
 ## Overview
 

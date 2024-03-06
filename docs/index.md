@@ -1,7 +1,3 @@
----
-repository: "https://github.com/turbot/steampipe-mod-net-insights"
----
-
 # Net Insights Mod
 
 Run individual configuration, compliance and security controls to validate security best practices for DNS records.
@@ -38,15 +34,13 @@ brew install turbot/tap/steampipe
 steampipe plugin install net
 ```
 
-Steampipe will automatically use your default Net credentials. Optionally, you can [setup multiple accounts](https://hub.steampipe.io/plugins/turbot/net#multi-account-connections) or [customize Net credentials](https://hub.steampipe.io/plugins/turbot/net#configuring-net-credentials).
-
 Finally, install the mod:
 
 ```sh
 mkdir dashboards
 cd dashboards
 powerpipe mod init
-powerpipe mod install github.com/turbot/powerpipe-mod-net-insights
+powerpipe mod install github.com/turbot/steampipe-mod-net-insights
 ```
 
 ### Browsing Dashboards

@@ -5,6 +5,10 @@ on:
       - main
     paths:
       - .github/labels.yml
+
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
